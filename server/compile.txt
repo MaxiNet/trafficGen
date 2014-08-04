@@ -1,0 +1,3 @@
+g++ -std=gnu++11 -pthread -o server TCPEchoServer-Thread.c DieWithError.c HandleTCPClient.c AcceptTCPConnection.c CreateTCPServerSocket.c
+clang++ -stdlib=libc++ -pthread -o server TCPEchoServer-Thread.c DieWithError.c HandleTCPClient.c AcceptTCPConnection.c CreateTCPServerSocket.c
+

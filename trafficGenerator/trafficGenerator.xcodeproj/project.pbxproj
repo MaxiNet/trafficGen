@@ -1,0 +1,244 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		132B5ECC177C705900447600 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 132B5ECB177C705900447600 /* main.cpp */; };
+		132B5ECE177C705900447600 /* trafficGenerator.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 132B5ECD177C705900447600 /* trafficGenerator.1 */; };
+		13DD25BF177C9CA4009F659D /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13DD25BE177C9CA4009F659D /* utils.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		132B5EC5177C705900447600 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				132B5ECE177C705900447600 /* trafficGenerator.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		132B5EC7177C705900447600 /* trafficGenerator */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = trafficGenerator; sourceTree = BUILT_PRODUCTS_DIR; };
+		132B5ECB177C705900447600 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		132B5ECD177C705900447600 /* trafficGenerator.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = trafficGenerator.1; sourceTree = "<group>"; };
+		13DD25BC177C83AD009F659D /* flow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = flow.h; sourceTree = "<group>"; };
+		13DD25BD177C92ED009F659D /* utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
+		13DD25BE177C9CA4009F659D /* utils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		132B5EC4177C705900447600 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		132B5EBC177C705900447600 = {
+			isa = PBXGroup;
+			children = (
+				132B5ECA177C705900447600 /* trafficGenerator */,
+				132B5EC8177C705900447600 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		132B5EC8177C705900447600 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				132B5EC7177C705900447600 /* trafficGenerator */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		132B5ECA177C705900447600 /* trafficGenerator */ = {
+			isa = PBXGroup;
+			children = (
+				132B5ECB177C705900447600 /* main.cpp */,
+				132B5ECD177C705900447600 /* trafficGenerator.1 */,
+				13DD25BC177C83AD009F659D /* flow.h */,
+				13DD25BD177C92ED009F659D /* utils.h */,
+				13DD25BE177C9CA4009F659D /* utils.cpp */,
+			);
+			path = trafficGenerator;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		132B5EC6177C705900447600 /* trafficGenerator */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 132B5ED1177C705900447600 /* Build configuration list for PBXNativeTarget "trafficGenerator" */;
+			buildPhases = (
+				132B5EC3177C705900447600 /* Sources */,
+				132B5EC4177C705900447600 /* Frameworks */,
+				132B5EC5177C705900447600 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = trafficGenerator;
+			productName = trafficGenerator;
+			productReference = 132B5EC7177C705900447600 /* trafficGenerator */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		132B5EBE177C705900447600 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+				ORGANIZATIONNAME = "Uni Paderborn";
+			};
+			buildConfigurationList = 132B5EC1177C705900447600 /* Build configuration list for PBXProject "trafficGenerator" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 132B5EBC177C705900447600;
+			productRefGroup = 132B5EC8177C705900447600 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				132B5EC6177C705900447600 /* trafficGenerator */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		132B5EC3177C705900447600 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				132B5ECC177C705900447600 /* main.cpp in Sources */,
+				13DD25BF177C9CA4009F659D /* utils.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		132B5ECF177C705900447600 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					/opt/local/include,
+					/Users/wette/promotion/forschung/dataCenterTrafficGenerator/trafficGen/threadpool/boost,
+				);
+				LIBRARY_SEARCH_PATHS = /opt/local/lib;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-lboost_thread-mt",
+					"-lboost_system-mt",
+				);
+				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = "";
+			};
+			name = Debug;
+		};
+		132B5ED0177C705900447600 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					/opt/local/include,
+					/Users/wette/promotion/forschung/dataCenterTrafficGenerator/trafficGen/threadpool/boost,
+				);
+				LIBRARY_SEARCH_PATHS = /opt/local/lib;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				OTHER_LDFLAGS = (
+					"-lboost_thread-mt",
+					"-lboost_system-mt",
+				);
+				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = "";
+			};
+			name = Release;
+		};
+		132B5ED2177C705900447600 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = /opt/local/include;
+			};
+			name = Debug;
+		};
+		132B5ED3177C705900447600 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = /opt/local/include;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		132B5EC1177C705900447600 /* Build configuration list for PBXProject "trafficGenerator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				132B5ECF177C705900447600 /* Debug */,
+				132B5ED0177C705900447600 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		132B5ED1177C705900447600 /* Build configuration list for PBXNativeTarget "trafficGenerator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				132B5ED2177C705900447600 /* Debug */,
+				132B5ED3177C705900447600 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 132B5EBE177C705900447600 /* Project object */;
+}

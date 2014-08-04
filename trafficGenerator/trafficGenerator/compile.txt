@@ -1,0 +1,7 @@
+g++ -pthread -std=gnu++11 -I../../threadpool/boost/ main.cpp utils.cpp -lboost_thread -lboost_system -o traffGen
+
+
+s7-eth1 s8-eth1 s9-eth1 s10-eth1 s13-eth1 s14-eth1 s15-eth1 s16-eth1 s19-eth1 s20-eth1 s21-eth1 s22-eth1 s25-eth1 s26-eth1 s27-eth1 s28-eth1
+
+
+iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 50
