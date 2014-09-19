@@ -35,7 +35,7 @@ void* dummyData = calloc(MTU, 8); //dummy data for sending.
 
 
 
-std::mutex stdOutMutex;
+static std::mutex stdOutMutex;
 
 int getRackId(int serverId, int numServersPerRack) {
     int r = ceil((float)serverId / (float)numServersPerRack);
@@ -71,7 +71,7 @@ int getBytes(int srcServerId, int *bucket, std::chrono::high_resolution_clock::t
 	//bucket algorithm that fills the bucket every 250 ms.
 	
     typedef std::chrono::high_resolution_clock Clock;
-    typedef std::chrono::milliseconds milliseconds;
+    //typedef std::chrono::milliseconds milliseconds;
 	
 	int ret = 1460;
 	
@@ -117,8 +117,8 @@ int getBytes(int srcServerId, int *bucket, std::chrono::high_resolution_clock::t
 }
 
 
-int sendData(const char* srcIp, const char* dstIp, int byteCount, char* interface, int** openConnections, std::mutex **mutexe, int srcServerId,
-			 int bitRateSingleHost, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, double latency) {
+int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* interface, int** openConnections, std::mutex **mutexe, int srcServerId,
+			 int bitRateSingleHost, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, double latency, std::ostream & out) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
     struct sockaddr_in src; /* src address */
@@ -131,7 +131,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, char* interfac
     microseconds diff;
     
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        std::cout << "socket() failed";
+        out << "socket() failed";
         counterDecrease(srcServerId, *openConnections, mutexe);
         return 1;
     }
@@ -163,7 +163,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, char* interfac
     //bind socket to src ip:
     if (bind(sock, (struct sockaddr*)&src, sizeof src) != 0) {
         perror("bind");
-        std::cout << "could not assign adress " << srcIp << "\n";
+        out << "could not assign adress " << srcIp << "\n";
         counterDecrease(srcServerId, *openConnections, mutexe);
         return 1;
     }
@@ -171,7 +171,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, char* interfac
     
     /* Establish the connection to the echo server */
     if (connect(sock, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
-        std::cout << "connect() to " <<  dstIp  << "failed\n";
+        out << "connect() to " <<  dstIp  << "failed\n";
         counterDecrease(srcServerId, *openConnections, mutexe);
         return 1;
     }
@@ -216,7 +216,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, char* interfac
 		}
         
         if (send(sock, sendData, bytesSendThisTime, 0) != bytesSendThisTime) {
-            std::cout << "send() sent a different number of bytes than expected";
+            out << "send() sent a different number of bytes than expected";
             counterDecrease(srcServerId, *openConnections, mutexe);
 			if(alloc)
 				free(sendData);
@@ -251,7 +251,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, char* interfac
     int rate = (sentBytes / (ms / 1000.0) / 1000.0) * 8.0;
     
     stdOutMutex.lock();
-    std::cout << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp << std::endl;
+    out << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp << std::endl;
     stdOutMutex.unlock();
     
 

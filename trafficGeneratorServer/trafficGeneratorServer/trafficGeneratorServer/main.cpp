@@ -35,9 +35,7 @@ int main(int argc, char *argv[])
 	char buf[1460];
 	int nbytes;
 	/* for setsockopt() SO_REUSEADDR, below */
-	int yes = 1;
 	uint addrlen;
-	int i, j;
 	/* clear the master and temp sets */
 	FD_ZERO(&master);
 	FD_ZERO(&read_fds);
@@ -126,7 +124,7 @@ int main(int argc, char *argv[])
 		bytesInLastIteration = 0;
 		
 		/*run through the existing connections looking for data to be read*/
-		for(i = 0; i <= fdmax; i++)
+		for(int i = 0; i <= fdmax; i++)
 		{
 			if(FD_ISSET(i, &read_fds))
 			{ /* we got one... */

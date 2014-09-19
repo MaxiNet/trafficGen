@@ -33,7 +33,7 @@ struct flow {
             
             if(i == 0) fromId = stoi(v);
             if(i == 1) toId = stoi(v);
-            if(i == 2) start = (long long)((long long)(stod(v) * scaleFactorTime) * 1000l);
+            if(i == 2) start = (long long)((stod(v) * scaleFactorTime * 1000.0));
             if(i == 3) bytes = stod(v);
 
             bytes *= scaleFactorSize;

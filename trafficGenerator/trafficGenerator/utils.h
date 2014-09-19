@@ -23,8 +23,8 @@ bool compairFlow (struct flow i,struct flow j);
 void counterIncrease(int idx, int* openConnections, std::mutex **mutexe);
 void counterDecrease(int idx, int* openConnections, std::mutex **mutexe);
 
-int sendData(const char* srcIp, const char* dstIp, int byteCount, char* interface, int** openConnections, std::mutex **mutexe, int srcServerId,
-			 int bitRateSingleHost, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, double latency);
+int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* interface, int** openConnections, std::mutex **mutexe, int srcServerId,
+			 int bitRateSingleHost, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, double latency, std::ostream& out);
 
 int getBytes(int srcServerId, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, std::mutex **mutexe, int bitrateSingleHost, int maxBytes);
 
