@@ -125,9 +125,15 @@ int main (int argc, const char * argv[])
         out << "Some errors has occured opening " << flowFile << std::endl;
         return 7;
     } 
+
+    if (true || debug)
+        out << "IPs: " << getIp(startid, hostsPerRack, ipBase) << " - " << getIp(endid, hostsPerRack, ipBase) << std::endl;
+
     while(!infile.eof()) {
         getline(infile,line);
         
+        if (line.front() == '#')
+            continue;
         
         //check if this flow belongs to us:
         size_t pos = line.find_first_of(",");
@@ -156,6 +162,7 @@ int main (int argc, const char * argv[])
 					continue;
 			}
             
+            // WATT?!
             if(f.bytes < 1)
                 f.bytes = f.bytes*2;
             
@@ -178,11 +185,11 @@ int main (int argc, const char * argv[])
     
     
     //debug
+    out << "Flow start times: ";
     for (auto f:flows) {
-        out << ", " << f.start;
-        
+       out << ", " << f.start;
     }
-
+    out << std::endl;
     
     cout << "creating thread pool..."  << endl;
     
@@ -212,7 +219,7 @@ int main (int argc, const char * argv[])
         //cout << "flow should start at " << f.start << " diff " << diff.count() << "\n";
         
         if(diff.count() >= f.start) {
-            //cout << diff.count() << ">=" << f.start << "\n";
+            std::cout << diff.count() << ">=" << f.start << "\n";
             //we have to start this flow!
         } else {
             //cout << "sleeping for " << f.start - diff.count() << "\n";

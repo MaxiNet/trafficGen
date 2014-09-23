@@ -37,9 +37,18 @@ void* dummyData = calloc(MTU, 8); //dummy data for sending.
 
 static std::mutex stdOutMutex;
 
+
+// Host IDs start at 1 
+// Rack IDs start at 1
+// IP parts start at 1
+
 int getRackId(int serverId, int numServersPerRack) {
-    int r = ceil((float)serverId / (float)numServersPerRack);
-    
+    int r = ((serverId -1) / numServersPerRack) + 1;
+
+    // 
+    // 1-n -> 1
+    // n+1 - 2n ->2
+    // ...
     return r;
 }
 
@@ -162,8 +171,9 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
     
     //bind socket to src ip:
     if (bind(sock, (struct sockaddr*)&src, sizeof src) != 0) {
-        perror("bind");
-        out << "could not assign adress " << srcIp << "\n";
+        char buf[200];
+        sprintf(buf, "could not bind to %s", srcIp);
+        perror(buf);
         counterDecrease(srcServerId, *openConnections, mutexe);
         return 1;
     }
@@ -171,7 +181,9 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
     
     /* Establish the connection to the echo server */
     if (connect(sock, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
-        out << "connect() to " <<  dstIp  << "failed\n";
+        char buf[200];
+        sprintf(buf, "connect to %s failed", dstIp);
+        perror(buf);
         counterDecrease(srcServerId, *openConnections, mutexe);
         return 1;
     }
