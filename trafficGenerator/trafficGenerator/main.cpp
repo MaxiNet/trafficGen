@@ -182,9 +182,7 @@ int main (int argc, const char * argv[])
     //sort by time:
     std::sort (flows.begin(), flows.end(), compairFlow);
     
-    
-    
-    //debug
+   //debug
     out << "Flow start times: ";
     for (auto f:flows) {
        out << ", " << f.start;
@@ -235,8 +233,10 @@ int main (int argc, const char * argv[])
 		
         int idx = f.fromId - startid;
         counterIncrease(idx, openConnections, mutexe);
-        tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes, interface, &openConnections, mutexe, idx, bitRateSingleHost, bucket,
-							  lastBucketUpdate, lat, std::ref(out)));
+        tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(),
+                   (int)f.bytes, interface, &openConnections, mutexe, idx, 
+                    bitRateSingleHost, bucket, lastBucketUpdate, lat, 
+                              std::ref(out), diff.count()));
 
     }
     

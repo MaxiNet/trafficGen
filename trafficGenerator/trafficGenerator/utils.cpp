@@ -24,6 +24,8 @@
 #include <netinet/tcp.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <iomanip>
+
 extern int	errno;
 
 
@@ -43,7 +45,7 @@ static std::mutex stdOutMutex;
 // IP parts start at 1
 
 int getRackId(int serverId, int numServersPerRack) {
-    int r = ((serverId -1) / numServersPerRack) + 1;
+    int r = ((serverId - 1) / numServersPerRack) + 1;
 
     // 
     // 1-n -> 1
@@ -127,7 +129,7 @@ int getBytes(int srcServerId, int *bucket, std::chrono::high_resolution_clock::t
 
 
 int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* interface, int** openConnections, std::mutex **mutexe, int srcServerId,
-			 int bitRateSingleHost, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, double latency, std::ostream & out) {
+			 int bitRateSingleHost, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, double latency, std::ostream & out, long startms) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
     struct sockaddr_in src; /* src address */
@@ -263,7 +265,13 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
     int rate = (sentBytes / (ms / 1000.0) / 1000.0) * 8.0;
     
     stdOutMutex.lock();
-    out << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp << std::endl;
+    char mbstr[100];
+    auto ctime = Clock::to_time_t(t1);
+    if (!std::strftime(mbstr, sizeof(mbstr), "%c %Z ", std::localtime(&ctime)))
+        std::cerr << "Failed to call strftime?" << std::endl;
+
+    out << mbstr << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp 
+        << "start: " << startms << "ms end: "<< startms + diff.count() << std::endl;
     stdOutMutex.unlock();
     
 
