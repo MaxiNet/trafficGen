@@ -271,7 +271,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
         std::cerr << "Failed to call strftime?" << std::endl;
 
     out << mbstr << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp 
-        << "start: " << startms << "ms end: "<< startms + diff.count() << std::endl;
+        << "start: " << startms << "ms end: "<< startms + (diff.count()/1000) << std::endl;
     stdOutMutex.unlock();
     
 
