@@ -30,10 +30,8 @@ extern int	errno;
 
 
 
-#define MTU 1460 /* buffer size in byte for send() function */
 
-
-void* dummyData = calloc(MTU, 8); //dummy data for sending.
+void* dummyData = calloc(64*1024, 8); //dummy data for sending.
 
 
 
@@ -66,70 +64,9 @@ std::string getIp(int serverId, int numServersPerRack, std::string ipBase) {
 bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
-void counterDecrease(int idx, int* openConnections, std::mutex **mutexe) {
-    mutexe[idx]->lock();
-    openConnections[idx]--;
-    mutexe[idx]->unlock();
-}
-void counterIncrease(int idx, int* openConnections, std::mutex **mutexe) {
-    mutexe[idx]->lock();
-    openConnections[idx]++;
-    mutexe[idx]->unlock();
-}
-
-int getBytes(int srcServerId, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, std::mutex **mutexe, int bitrateSingleHost, int maxBytes) {
-	
-	//bucket algorithm that fills the bucket every 250 ms.
-	
-    typedef std::chrono::high_resolution_clock Clock;
-    //typedef std::chrono::milliseconds milliseconds;
-	
-	int ret = 1460;
-	
-	if(maxBytes < ret)
-		ret = maxBytes;
-	
-	mutexe[srcServerId]->lock();
-	int inBucket = bucket[srcServerId];
-	if( inBucket > 0) {
-		if(inBucket < ret)
-			ret = bucket[srcServerId];
-		
-		bucket[srcServerId] -= ret;
-		
-		
-	} else {
-        Clock::time_point t0 = Clock::now();
-        
-        std::chrono::microseconds diff = std::chrono::duration_cast<std::chrono::microseconds>(t0 - lastBucketUpdate[srcServerId]);
-		if(diff.count() > 250L*1000L) {
-			//can make an immediate update.
-		} else {
-			//have to wait for the next bucket update
-			long long toSleep = 250L*1000L - diff.count();
-			
-			std::this_thread::sleep_for(std::chrono::microseconds(toSleep));
-			
-
-		}
-		bucket[srcServerId] = (bitrateSingleHost/8)/4;	// /4 because of 250ms update interval.
-		if(bucket[srcServerId] < ret)
-			ret = bucket[srcServerId];
-		
-		bucket[srcServerId] -= ret;
-		lastBucketUpdate[srcServerId] = Clock::now();
-		
-	}
-	
-	
-	mutexe[srcServerId]->unlock();
-	
-	return ret;
-}
 
 
-int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* interface, int** openConnections, std::mutex **mutexe, int srcServerId,
-			 int bitRateSingleHost, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, double latency, std::ostream & out, long startms) {
+int sendData(const char* srcIp, const char* dstIp, int byteCount, std::ostream & out) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
     struct sockaddr_in src; /* src address */
@@ -143,7 +80,6 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
     
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         out << "socket() failed";
-        counterDecrease(srcServerId, *openConnections, mutexe);
         return 1;
     }
     
@@ -176,7 +112,6 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
         char buf[200];
         sprintf(buf, "could not bind to %s", srcIp);
         perror(buf);
-        counterDecrease(srcServerId, *openConnections, mutexe);
         return 1;
     }
     
@@ -186,52 +121,44 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
         char buf[200];
         sprintf(buf, "connect to %s failed", dstIp);
         perror(buf);
-        counterDecrease(srcServerId, *openConnections, mutexe);
         return 1;
     }
-    
-    
-    int mtu = MTU; //generate 1460 bytes (hopefully 1 packet) at once.
 
     int sentBytes = 0;
     
     typedef std::chrono::high_resolution_clock Clock;
     
     /* Send the data to the server */
-    
-    if(byteCount < mtu)
-        mtu = byteCount;
 	
 	void * sendData = dummyData;
-	
-	bool alloc = false;
+	bool alloc = false;	//did we alloc ones?
     
     while(sentBytes < byteCount) {
 		
-		int min = byteCount - sentBytes;
-		if(mtu < min)
-			min = mtu;
+		int sendThisTime = byteCount - sentBytes;
 		
+		if(sendThisTime > 64*1024)
+			sendThisTime = 64*1024;
 		
-		int bytesSendThisTime = getBytes(srcServerId, bucket, lastBucketUpdate, mutexe, bitRateSingleHost, min);
-		
-
 		
 		//this is the last message. Fill them with ones to mark the transmission as beeing completed.
-		if((byteCount - sentBytes) - bytesSendThisTime == 0) {
-			char* ones = (char*)malloc(MTU);
+		if((byteCount - sentBytes) - sendThisTime == 0) {
+			char* ones = (char*)malloc(sendThisTime);
 			alloc = true;
-			for(int i = 0; i < MTU; i++) {
-				ones[i] = '1';
+			for(int i = 0; i < sendThisTime-1; i++) {
+				ones[i] = '0';
 			}
+			ones[sendThisTime] = '1';
 			sendData = ones;
 		} else {
 			alloc = false;
 		}
-        
-        if (send(sock, sendData, bytesSendThisTime, 0) != bytesSendThisTime) {
+		
+		
+		int sent = send(sock, sendData, sendThisTime, 0);
+		
+        if (sent <= 0) {
             out << "send() sent a different number of bytes than expected";
-            counterDecrease(srcServerId, *openConnections, mutexe);
 			if(alloc)
 				free(sendData);
             return 1;
@@ -240,13 +167,13 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
 		if(alloc)
 			free(sendData);
 		
-		sentBytes += bytesSendThisTime;
+		sentBytes += sent;
 
     }
 	
 	//wait for the connection to be closed by the remote peer.
-	char* recBuffer = (char*)malloc(MTU);
-	recv(sock, recBuffer, MTU, 0);
+	char* recBuffer = (char*)malloc(64*1024);
+	recv(sock, recBuffer, 64*1024, 0);
 	
 	free(recBuffer);
 	
@@ -258,24 +185,20 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
     
     diff = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0);
     
-    float ms =diff.count() / 1000.0 + 2*latency;
+    float ms =diff.count() / 1000.0;
 	
 	
     
     int rate = (sentBytes / (ms / 1000.0) / 1000.0) * 8.0;
     
     stdOutMutex.lock();
-    char mbstr[100];
-    auto ctime = Clock::to_time_t(t1);
-    if (!std::strftime(mbstr, sizeof(mbstr), "%c %Z ", std::localtime(&ctime)))
-        std::cerr << "Failed to call strftime?" << std::endl;
 
-    out << mbstr << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp 
-        << "start: " << startms << "ms end: "<< startms + (diff.count()/1000) << std::endl;
+
+	out << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp;
+    //out << "start: " << startms << "ms end: "<< startms + (diff.count()/1000) << std::endl;
     stdOutMutex.unlock();
     
 
-    counterDecrease(srcServerId, *openConnections, mutexe);
     return(0);
 }
 
