@@ -25,6 +25,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <iomanip>
+#include <chrono>
+#include <iostream>
 
 extern int	errno;
 
@@ -129,7 +131,7 @@ int getBytes(int srcServerId, int *bucket, std::chrono::high_resolution_clock::t
 
 
 int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* interface, int** openConnections, std::mutex **mutexe, int srcServerId,
-			 int bitRateSingleHost, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, double latency, std::ostream & out, long startms) {
+			 int bitRateSingleHost, int *bucket, std::chrono::high_resolution_clock::time_point *lastBucketUpdate, double latency, std::ostream & out, long startms, bool enablemtcp) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
     struct sockaddr_in src; /* src address */
@@ -146,6 +148,17 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
         counterDecrease(srcServerId, *openConnections, mutexe);
         return 1;
     }
+
+#ifdef __linux__
+    int enablemtcpint = enablemtcp;
+    if(setsockopt(sock, SO_TCP, MPTCP_ENABLED, &enablemtcp, sizeof(enablemtcp))) {
+#else
+   if(enablemtcp) {
+#endif
+       out << "Error enabling Multipath TCP!" << std::endl;
+       exit(32);
+   }
+
     
     /*
     //bind socket to interface:
@@ -251,7 +264,10 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
 	free(recBuffer);
 	
     t1 = Clock::now();
-    
+
+    std::chrono::system_clock sysclock;
+    auto tnow =sysclock.now();
+
     close(sock);
     
 
@@ -266,11 +282,12 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
     
     stdOutMutex.lock();
     char mbstr[100];
-    auto ctime = Clock::to_time_t(t1);
+
+    auto ctime = std::chrono::system_clock::to_time_t(tnow);
     if (!std::strftime(mbstr, sizeof(mbstr), "%c %Z ", std::localtime(&ctime)))
         std::cerr << "Failed to call strftime?" << std::endl;
 
-    out << mbstr << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp 
+    out << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp
         << "start: " << startms << "ms end: "<< startms + (diff.count()/1000) << std::endl;
     stdOutMutex.unlock();
     

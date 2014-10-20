@@ -25,9 +25,9 @@ using namespace boost::threadpool;
 using namespace std;
 using namespace boost;
 
-const static char* argname[] = { "hostsperRack", "ipBase", "startId", "endId", "flowFile", "scaleFactorSize", "scaleFactorTime", "bitRateSingleHost", "generateInRackTraffic", "latency", "logfile"};
+const static char* argname[] = { "hostsperRack", "ipBase", "startId", "endId", "flowFile", "scaleFactorSize", "scaleFactorTime", "bitRateSingleHost", "generateInRackTraffic", "latency", "mtcp", "logfile"};
 static const int numargs = 11;
-static const int optargs = 1;
+static const int optargs = 2;
 
 static const bool debug=false;
 
@@ -42,8 +42,8 @@ static void usage(const char* name,std::ostream & out)
 
 std::ostream & getOut(int argc, const char* argv[]) 
 {
-    if (argc >= 12) {
-        auto fout = new std::ofstream(argv[11]);
+    if (argc >= 13) {
+        auto fout = new std::ofstream(argv[12]);
         return *fout;
     } else {
         return std::cout;
@@ -93,7 +93,12 @@ int main (int argc, const char * argv[])
 	int generateInRackTraffic = atoi(argv[9]);
 	
 	double latency = stod(argv[10]);
+    bool enablemtcp;
 
+    if (argc >= 12)
+        enablemtcp = atoi(argv[11]);
+    else
+        enablemtcp= false;
     
     const char *interface = "en1";
     
@@ -236,7 +241,7 @@ int main (int argc, const char * argv[])
         tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(),
                    (int)f.bytes, interface, &openConnections, mutexe, idx, 
                     bitRateSingleHost, bucket, lastBucketUpdate, lat, 
-                              std::ref(out), diff.count()));
+                              std::ref(out), diff.count(), enablemtcp));
 
     }
     

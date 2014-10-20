@@ -43,15 +43,22 @@ int main(int argc, char *argv[])
 	typedef std::chrono::high_resolution_clock Clock;
 	
 	
-    if (argc != 3)     /* Test for correct number of arguments */
+    if (argc < 3 || argc > 4)     /* Test for correct number of arguments */
     {
-        fprintf(stderr, "Usage:  %s <Server IP> <Data Rate in BitsPerSec>\n", argv[0]);
+        fprintf(stderr, "Usage:  %s <Server IP> <Data Rate in BitsPerSec> <enablemtcp 0/1>\n", argv[0]);
         exit(1);
     }
     std::string echoServIp(argv[1]);  /* First arg:  local port */
 	int datarateInBytePerSec = atoi(argv[2]) / 8;
+    bool enablemtcp;
+    if (argc >=4) {
+        enablemtcp= atoi(argv[3]);
+    }else {
+        enablemtcp=false;
+    }
+
 	
-	fprintf(stdout, "starting traffGen server at IP %s with max recv data rate %d bytes per sec\n", echoServIp.c_str(), datarateInBytePerSec);
+	fprintf(stdout, "starting traffGen server at IP %s with max recv data rate %d bytes per sec and mtcp=%d\n", echoServIp.c_str(), datarateInBytePerSec, enablemtcp);
 	
 	
 	/* get the listener */
@@ -61,6 +68,19 @@ int main(int argc, char *argv[])
 		/*just exit lol!*/
 		exit(1);
 	}
+
+#ifdef __linux__
+    int enablemtcpint = enablemtcp;
+    if(setsockopt(sock, SO_TCP, MPTCP_ENABLED, &enablemtcp, sizeof(enablemtcp))) {
+#else
+        if(enablemtcp) {
+#endif
+            std::cerr << "Error enabling Multipath TCP!" << std::endl;
+            // lol, get out get of here!
+            exit(32);
+        }
+
+
 	
 	/* bind */
 	memset(&serveraddr, 0, sizeof(serveraddr));   /* Zero out structure */
