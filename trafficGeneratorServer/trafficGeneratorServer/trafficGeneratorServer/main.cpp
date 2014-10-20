@@ -11,6 +11,11 @@
 #include <chrono>
 #include <string>
 #include <thread>
+#include <iostream>
+
+#ifndef MPTCP_ENABLED
+#define MPTCP_ENABLED          26
+#endif
 
 /* port we're listening on */
 #define PORT 13373
@@ -71,7 +76,7 @@ int main(int argc, char *argv[])
 
 #ifdef __linux__
     int enablemtcpint = enablemtcp;
-    if(setsockopt(sock, SO_TCP, MPTCP_ENABLED, &enablemtcp, sizeof(enablemtcp))) {
+    if(setsockopt(listener, SOL_TCP, MPTCP_ENABLED, &enablemtcp, sizeof(enablemtcp))) {
 #else
         if(enablemtcp) {
 #endif
@@ -159,7 +164,22 @@ int main(int argc, char *argv[])
 					else
 					{
 						//printf("Server-accept() is OK...\n");
-						
+                        // Enable multipath
+#ifdef __linux__
+                        int enablemtcpint = enablemtcp;
+                        if(setsockopt(newfd, SOL_TCP, MPTCP_ENABLED, &enablemtcp, sizeof(enablemtcp))) {
+#else
+                        if(enablemtcp) {
+#endif
+                            std::cerr << "Error enabling Multipath TCP!" << std::endl;
+                            // lol, get out get of here!
+                            exit(32);
+                        }
+                            
+
+
+
+
 						FD_SET(newfd, &master); /* add to master set */
 						if(newfd > fdmax)
 						{ /* keep track of the maximum */

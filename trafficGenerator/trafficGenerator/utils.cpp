@@ -150,8 +150,11 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, const char* in
     }
 
 #ifdef __linux__
+#ifndef MPTCP_ENABLED
+#define MPTCP_ENABLED          26
+#endif
     int enablemtcpint = enablemtcp;
-    if(setsockopt(sock, SO_TCP, MPTCP_ENABLED, &enablemtcp, sizeof(enablemtcp))) {
+    if(setsockopt(sock, SOL_TCP, MPTCP_ENABLED, &enablemtcp, sizeof(enablemtcp))) {
 #else
    if(enablemtcp) {
 #endif
