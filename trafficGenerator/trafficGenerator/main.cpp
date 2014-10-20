@@ -25,8 +25,8 @@ using namespace boost::threadpool;
 using namespace std;
 using namespace boost;
 
-const static char* argname[] = { "hostsperRack", "ipBase", "startId", "endId", "flowFile", "scaleFactorSize", "scaleFactorTime", "bitRateSingleHost", "generateInRackTraffic", "latency", "mtcp", "logfile"};
-static const int numargs = 11;
+const static char* argname[] = {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "mtcp", "logfile"};
+static const int numargs = 8;
 static const int optargs = 2;
 
 static const bool debug=false;
@@ -42,8 +42,8 @@ static void usage(const char* name,std::ostream & out)
 
 std::ostream & getOut(int argc, const char* argv[]) 
 {
-    if (argc >= 13) {
-        auto fout = new std::ofstream(argv[12]);
+    if (argc >= 9) {
+        auto fout = new std::ofstream(argv[8]);
         return *fout;
     } else {
         return std::cout;
@@ -72,51 +72,30 @@ int main (int argc, const char * argv[])
         }
     }
     if (argc -1 < numargs-optargs) {
-        std::cerr << "not enoguh parameters. Got " << argc -1 << " need " << numargs -optargs << std::endl;
+        std::cerr << "not enough parameters. Got " << argc -1 << " need " << numargs -optargs << std::endl;
         usage(argv[0], out);
         return 1;
     }
-    
+	
     int hostsPerRack = atoi(argv[1]);
     string ipBase = argv[2];
     
-    int startid = atoi(argv[3]);
-    int endid = atoi(argv[4]);
-    string flowFile = argv[5];
-    
-    double scaleFactorSize = stod(argv[6]);
-    
-    double scaleFactorTime = stod(argv[7]);
-	
-	int bitRateSingleHost = atoi(argv[8]);
-	
-	int generateInRackTraffic = atoi(argv[9]);
-	
-	double latency = stod(argv[10]);
-    bool enablemtcp;
+    int hostId = atoi(argv[3]);
 
-    if (argc >= 12)
-        enablemtcp = atoi(argv[11]);
+    string flowFile = argv[4];
+
+    double scaleFactorSize = stod(argv[5]);
+    
+    double scaleFactorTime = stod(argv[6]);
+
+    bool enablemtcp;
+    if (argc >= 8)
+        enablemtcp = atoi(argv[7]);
     else
         enablemtcp= false;
-    
-    const char *interface = "en1";
-    
 
-    int *openConnections = (int*)malloc((endid - startid +1) * sizeof(int));
-    int *bucket = (int*)malloc((endid - startid +1) * sizeof(int));
     typedef std::chrono::high_resolution_clock Clock;
-    Clock::time_point *lastBucketUpdate = (Clock::time_point*)malloc((endid - startid +1) * sizeof(Clock::time_point));
-	
-    
-    std::mutex **mutexe = (std::mutex**)malloc((endid - startid +1) * sizeof(std::mutex*));
-    for(int i = 0; i < endid - startid + 1; i++) {
-        mutexe[i] = new std::mutex();
-        openConnections[i] = 0;
-		bucket[i] = 0;
-		lastBucketUpdate[i] = Clock::now();
-    }
-    
+
     
     //read flows from file - only hold the ones we really want to have:
     ifstream infile;
@@ -131,8 +110,8 @@ int main (int argc, const char * argv[])
         return 7;
     } 
 
-    if (true || debug)
-        out << "IPs: " << getIp(startid, hostsPerRack, ipBase) << " - " << getIp(endid, hostsPerRack, ipBase) << std::endl;
+    if (debug)
+        out << "IP: " << getIp(hostId, hostsPerRack, ipBase) << std::endl;
 
     while(!infile.eof()) {
         getline(infile,line);
@@ -150,7 +129,7 @@ int main (int argc, const char * argv[])
         if(sid != "")
             id = stoi(sid);
         
-        if(id >= startid && id <= endid) {
+        if(id == hostId) {
             //we keep this line. Append it to string.
             
             //style= 1, 4, 40.06287, 11045.23 (from, to, time, bytes)
@@ -160,12 +139,6 @@ int main (int argc, const char * argv[])
             if(debug)
                 out << "flow from " << f.fromIP << " to " << f.toIP  << endl;
 			
-			
-			//check if this is in rack traffic - if so it may be skipped.
-			if(generateInRackTraffic == 0) {
-				if(getRackId(f.fromId, hostsPerRack) == getRackId(f.toId, hostsPerRack))
-					continue;
-			}
             
             // WATT?!
             if(f.bytes < 1)
@@ -185,20 +158,22 @@ int main (int argc, const char * argv[])
     cout << "read " << numFlows << " flows. Using " << flows.size() << " flows" << endl;
     
     //sort by time:
-    std::sort (flows.begin(), flows.end(), compairFlow);
+    std::sort(flows.begin(), flows.end(), compairFlow);
     
    //debug
-    out << "Flow start times: ";
-    for (auto f:flows) {
-       out << ", " << f.start;
-    }
-    out << std::endl;
+	if(debug) {
+		out << "Flow start times: ";
+		for (auto f:flows) {
+			out << ", " << f.start;
+		}
+		out << std::endl;
+	}
     
     cout << "creating thread pool..."  << endl;
     
     //send data according to schedule.
     
-    pool tp((endid - startid +1) * 4);   //create a thread pool
+    pool tp(8);   //create a thread pool
     
     
 
@@ -230,18 +205,10 @@ int main (int argc, const char * argv[])
             std::this_thread::sleep_for(milliseconds(f.start - diff.count()));
         }
         //execute flow:
-		
-		//we have to add latency for inRack Communications!
-		double lat = 0.0;
-		if(getRackId(f.fromId, hostsPerRack) == getRackId(f.toId, hostsPerRack))
-			lat = latency;
-		
-        int idx = f.fromId - startid;
-        counterIncrease(idx, openConnections, mutexe);
-        tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(),
-                   (int)f.bytes, interface, &openConnections, mutexe, idx, 
-                    bitRateSingleHost, bucket, lastBucketUpdate, lat, 
-                              std::ref(out), diff.count(), enablemtcp));
+
+        tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
+                              diff.count(), std::ref(out), enablemtcp)
+                    );
 
     }
     

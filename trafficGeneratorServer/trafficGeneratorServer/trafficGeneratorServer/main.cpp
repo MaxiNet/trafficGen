@@ -12,6 +12,8 @@
 #include <string>
 #include <thread>
 #include <iostream>
+#include <netinet/tcp.h>
+
 
 #ifndef MPTCP_ENABLED
 #define MPTCP_ENABLED          26
@@ -37,7 +39,7 @@ int main(int argc, char *argv[])
 	/* newly accept()ed socket descriptor */
 	int newfd;
 	/* buffer for client data */
-	char buf[1460];
+	char buf[64*1024];
 	int nbytes;
 	/* for setsockopt() SO_REUSEADDR, below */
 	uint addrlen;
@@ -48,35 +50,34 @@ int main(int argc, char *argv[])
 	typedef std::chrono::high_resolution_clock Clock;
 	
 	
-    if (argc < 3 || argc > 4)     /* Test for correct number of arguments */
+    if (argc < 2 || argc > 3)     /* Test for correct number of arguments */
     {
-        fprintf(stderr, "Usage:  %s <Server IP> <Data Rate in BitsPerSec> <enablemtcp 0/1>\n", argv[0]);
+        fprintf(stderr, "Usage:  %s <Server IP> <enablemtcp 0/1>\n", argv[0]);
         exit(1);
     }
     std::string echoServIp(argv[1]);  /* First arg:  local port */
-	int datarateInBytePerSec = atoi(argv[2]) / 8;
+
     bool enablemtcp;
-    if (argc >=4) {
-        enablemtcp= atoi(argv[3]);
+    if (argc >=3) {
+        enablemtcp= atoi(argv[2]);
     }else {
         enablemtcp=false;
     }
 
 	
-	fprintf(stdout, "starting traffGen server at IP %s with max recv data rate %d bytes per sec and mtcp=%d\n", echoServIp.c_str(), datarateInBytePerSec, enablemtcp);
-	
+	fprintf(stdout, "starting traffGen server at IP %s and mtcp=%d\n", echoServIp.c_str(), enablemtcp);
+
 	
 	/* get the listener */
 	if((listener = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1)
 	{
-		perror("Server-socket() error lol!");
-		/*just exit lol!*/
+		perror("Server-socket() error!");
 		exit(1);
 	}
 
 #ifdef __linux__
     int enablemtcpint = enablemtcp;
-    if(setsockopt(listener, SOL_TCP, MPTCP_ENABLED, &enablemtcp, sizeof(enablemtcp))) {
+    if(setsockopt(listener, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint))) {
 #else
         if(enablemtcp) {
 #endif
@@ -95,58 +96,34 @@ int main(int argc, char *argv[])
 	
 	if(bind(listener, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) == -1)
 	{
-		perror("Server-bind() error lol!");
+		perror("Server-bind() error!");
 		exit(1);
 	}
-	//printf("Server-bind() is OK...\n");
 	
 	/* listen */
 	if(listen(listener, 50) == -1)
 	{
-		perror("Server-listen() error lol!");
+		perror("Server-listen() error!");
 		exit(1);
 	}
-	//printf("Server-listen() is OK...\n");
 	
 	/* add the listener to the master set */
 	FD_SET(listener, &master);
 	/* keep track of the biggest file descriptor */
 	fdmax = listener; /* so far, it's this one*/
 	
-	Clock::time_point t0 = Clock::now();
-	int bytesInLastIteration = 0;
-	
+
 	/* loop */
 	for(;;)
 	{
-		
-		//sleep
-		Clock::time_point t1 = Clock::now();
-		std::chrono::microseconds r_diff = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0);
-
-		
-		long long timeToReceive = ((long long)bytesInLastIteration * 1000000L) / (long long) datarateInBytePerSec;	//in microseconds
-		long long timeToSleep = timeToReceive - r_diff.count();
-		
-		//printf("received %d bytes in %d ms. Have to sleep for %d ms\n", bytesInLastIteration, (int)(r_diff.count()/1000), (int)(timeToSleep/1000));
-		if(timeToSleep > 0 && bytesInLastIteration > 0) {
-			std::this_thread::sleep_for(std::chrono::microseconds( timeToSleep ));
-		}
-		
-		t0 = Clock::now();
-		
-		
 		/* copy it */
 		read_fds = master;
 		
 		if(select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1)
 		{
-			perror("Server-select() error lol!");
+			perror("Server-select() error!");
 			exit(1);
 		}
-		//printf("Server-select() is OK...\n");
-		
-		bytesInLastIteration = 0;
 		
 		/*run through the existing connections looking for data to be read*/
 		for(int i = 0; i <= fdmax; i++)
@@ -159,7 +136,7 @@ int main(int argc, char *argv[])
 					addrlen = sizeof(clientaddr);
 					if((newfd = accept(listener, (struct sockaddr *)&clientaddr, &addrlen)) == -1)
 					{
-						perror("Server-accept() error lol!");
+						perror("Server-accept() error!");
 					}
 					else
 					{
@@ -167,7 +144,7 @@ int main(int argc, char *argv[])
                         // Enable multipath
 #ifdef __linux__
                         int enablemtcpint = enablemtcp;
-                        if(setsockopt(newfd, SOL_TCP, MPTCP_ENABLED, &enablemtcp, sizeof(enablemtcp))) {
+                        if(setsockopt(newfd, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint))) {
 #else
                         if(enablemtcp) {
 #endif
@@ -179,8 +156,7 @@ int main(int argc, char *argv[])
 
 
 
-
-						FD_SET(newfd, &master); /* add to master set */
+                        FD_SET(newfd, &master); /* add to master set */
 						if(newfd > fdmax)
 						{ /* keep track of the maximum */
 							fdmax = newfd;
@@ -199,7 +175,7 @@ int main(int argc, char *argv[])
 						//printf("%s: socket %d hung up\n", argv[0], i);
 						
 						} else {
-							perror("recv() error lol!");
+							perror("recv() error!");
 						}
 						/* close it... */
 						close(i);
@@ -209,9 +185,7 @@ int main(int argc, char *argv[])
 					else
 					{
 						/* we got some data from a client*/
-						bytesInLastIteration += nbytes;
-						
-						
+
 						//check if this was the last message (last byte '1')
 						if(buf[nbytes-1] == '1') {
 							//printf("%s: socket %d hung up\n", argv[0], i);
