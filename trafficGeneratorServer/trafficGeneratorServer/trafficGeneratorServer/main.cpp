@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 #else
         if(enablemtcp) {
 #endif
-            std::cerr << "Error enabling Multipath TCP!" << std::endl;
+            perror("Enable MTCP on listener socket");
             // lol, get out get of here!
             exit(32);
         }
@@ -141,20 +141,6 @@ int main(int argc, char *argv[])
 					else
 					{
 						//printf("Server-accept() is OK...\n");
-                        // Enable multipath
-#ifdef __linux__
-                        int enablemtcpint = enablemtcp;
-                        if(setsockopt(newfd, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint))) {
-#else
-                        if(enablemtcp) {
-#endif
-                            std::cerr << "Error enabling Multipath TCP!" << std::endl;
-                            // lol, get out get of here!
-                            exit(32);
-                        }
-                            
-
-
 
                         FD_SET(newfd, &master); /* add to master set */
 						if(newfd > fdmax)
