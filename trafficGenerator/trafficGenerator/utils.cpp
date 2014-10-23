@@ -91,10 +91,11 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
 #define MPTCP_ENABLED          26
 #endif
     int enablemtcpint = enablemtcp;
-    if(setsockopt(sock, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint))) {
+    if(setsockopt(sock, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint)) && enablemtcp) {
 #else
    if(enablemtcp) {
 #endif
+       perror ("Setting mptcp on socket");
        out << "Error enabling Multipath TCP!" << std::endl;
        exit(32);
    }

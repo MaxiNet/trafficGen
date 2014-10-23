@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
 #ifdef __linux__
     int enablemtcpint = enablemtcp;
-    if(setsockopt(listener, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint))) {
+    if(setsockopt(listener, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint)) && enablemtcp) {
 #else
         if(enablemtcp) {
 #endif
