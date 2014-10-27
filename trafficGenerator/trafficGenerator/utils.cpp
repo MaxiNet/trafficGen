@@ -166,7 +166,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
 			for(int i = 0; i < sendThisTime-1; i++) {
 				ones[i] = '0';
 			}
-			ones[sendThisTime] = '1';
+			ones[sendThisTime-1] = '1';
 			sendData = ones;
 		} else {
 			alloc = false;
@@ -176,6 +176,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
 		int sent = send (sock, sendData, sendThisTime, 0);
 		
         if (sent <= 0) {
+            perror ("error while sending");
             out << "send() sent a different number of bytes than expected";
 			if(alloc)
 				free(sendData);
@@ -222,6 +223,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
     out << mbstr << sentBytes << " bytes in " << ms << " ms " << rate << " kbit/s from "  << srcIp << " to " << dstIp
         << "start: " << startms << "ms end: "<< startms + (diff.count()/1000) << std::endl;
 
+    out.flush();
     stdOutMutex.unlock();
     
 
