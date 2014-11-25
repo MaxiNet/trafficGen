@@ -173,7 +173,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
 		}
 		
 		
-		int sent = send (sock, sendData, sendThisTime, 0);
+		size_t sent = send (sock, sendData, sendThisTime, 0);
 		
         if (sent <= 0) {
             perror ("error while sending");
@@ -221,7 +221,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
         std::cerr << "Failed to call strftime?" << std::endl;
 
     auto endms = startms + (diff.count()/1000);
-    out << start << " " <<  endms << " " << sentBytes << " bytes in " << ms << " ms " << rate
+    out << startms << " " <<  endms << " " << sentBytes << " bytes in " << ms << " ms " << rate
         << " kbit/s from "  << srcIp << " to " << dstIp << std::endl;
 
     out.flush();
