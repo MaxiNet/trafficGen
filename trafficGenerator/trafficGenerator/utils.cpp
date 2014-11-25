@@ -130,72 +130,77 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
         char buf[200];
         sprintf(buf, "could not bind to %s", srcIp);
         perror(buf);
-        return 1;
+        return -2;
     }
     
+    int sentBytes = 0;
     
     /* Establish the connection to the echo server */
     if (connect(sock, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
         char buf[200];
         sprintf(buf, "connect to %s failed", dstIp);
         perror(buf);
-        return 1;
+        goto finished;
     }
 
-    int sentBytes = 0;
+
     
     typedef std::chrono::high_resolution_clock Clock;
     
     /* Send the data to the server */
-	
-	void * sendData = dummyData;
-	bool alloc = false;	//did we alloc ones?
-    
-    while(sentBytes < byteCount) {
-		
-		int sendThisTime = byteCount - sentBytes;
-		
-		if(sendThisTime > 64*1024)
-			sendThisTime = 64*1024;
-		
-		
-		//this is the last message. Fill them with ones to mark the transmission as beeing completed.
-		if((byteCount - sentBytes) - sendThisTime == 0) {
-			char* ones = (char*)malloc(sendThisTime);
-			alloc = true;
-			for(int i = 0; i < sendThisTime-1; i++) {
-				ones[i] = '0';
-			}
-			ones[sendThisTime-1] = '1';
-			sendData = ones;
-		} else {
-			alloc = false;
-		}
-		
-		
-		size_t sent = send (sock, sendData, sendThisTime, 0);
-		
-        if (sent <= 0) {
-            perror ("error while sending");
-            out << "send() sent a different number of bytes than expected";
-			if(alloc)
-				free(sendData);
-            return 1;
-        }
-		
-		if(alloc)
-			free(sendData);
-		
-		sentBytes += sent;
 
+    {
+        void * sendData = dummyData;
+        bool alloc = false;	//did we alloc ones?
+    
+        while(sentBytes < byteCount) {
+		
+            int sendThisTime = byteCount - sentBytes;
+		
+            if(sendThisTime > 64*1024)
+                sendThisTime = 64*1024;
+		
+		
+            //this is the last message. Fill them with ones to mark the transmission as beeing completed.
+            if((byteCount - sentBytes) - sendThisTime == 0) {
+                char* ones = (char*)malloc(sendThisTime);
+                alloc = true;
+                for(int i = 0; i < sendThisTime-1; i++) {
+                    ones[i] = '0';
+                }
+                ones[sendThisTime-1] = '1';
+                sendData = ones;
+            } else {
+                alloc = false;
+            }
+		
+		
+            size_t sent = send (sock, sendData, sendThisTime, 0);
+		
+            if (sent <= 0) {
+                perror ("error while sending");
+                out << "send() sent a different number of bytes than expected";
+                if(alloc)
+                    free(sendData);
+                goto finished;
+            }
+		
+            if(alloc)
+                free(sendData);
+		
+            sentBytes += sent;
+
+        }
     }
-	
-	//wait for the connection to be closed by the remote peer.
-	char* recBuffer = (char*)malloc(64*1024);
-	recv(sock, recBuffer, 64*1024, 0);
-	
-	free(recBuffer);
-	
+
+	{
+        //wait for the connection to be closed by the remote peer.
+        char* recBuffer = (char*)malloc(64*1024);
+        recv(sock, recBuffer, 64*1024, 0);
+        free(recBuffer);
+    }
+
+    finished:	
     t1 = Clock::now();
 
     std::chrono::system_clock sysclock;
@@ -221,14 +226,13 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
         std::cerr << "Failed to call strftime?" << std::endl;
 
     auto endms = startms + (diff.count()/1000);
-    out << startms << " " <<  endms << " " << sentBytes << " bytes in " << ms << " ms " << rate
+    out << startms << " " <<  endms << " " << sentBytes << " of " << byteCount << " bytes in " << ms << " ms " << rate
         << " kbit/s from "  << srcIp << " to " << dstIp << std::endl;
 
     out.flush();
     stdOutMutex.unlock();
-    
 
-    return(0);
+    return (byteCount - sentBytes);
 }
 
 
