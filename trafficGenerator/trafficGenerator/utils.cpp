@@ -123,7 +123,7 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
         return -2;
     }
     
-    int sentBytes = 0;
+    ssize_t sentBytes = 0;
     
     /* Establish the connection to the echo server */
     if (connect(sock, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
