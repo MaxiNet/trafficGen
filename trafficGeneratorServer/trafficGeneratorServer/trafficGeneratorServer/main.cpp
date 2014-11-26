@@ -46,8 +46,7 @@ int main(int argc, char *argv[])
 	/* clear the master and temp sets */
 	FD_ZERO(&master);
 	FD_ZERO(&read_fds);
-	
-	typedef std::chrono::high_resolution_clock Clock;
+
 	
 	
     if (argc < 2 || argc > 3)     /* Test for correct number of arguments */

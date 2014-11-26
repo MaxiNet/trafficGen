@@ -69,7 +69,7 @@ bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 
-int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, std::ostream & out, bool enablemtcp) {
+int sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream & out, const bool enablemtcp, const int retries) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
     struct sockaddr_in src; /* src address */
@@ -83,7 +83,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
     
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         out << "socket() failed";
-        return 1;
+        return -1;
     }
 
 #ifdef __linux__
@@ -100,16 +100,6 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
        exit(32);
    }
 
-    
-    /*
-    //bind socket to interface:
-    if(!setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, interface, sizeof(interface))) {
-        perror("SO_BINDTODEVICE");
-        counterDecrease(srcServerId, openConnections, mutexe);
-        return 1;
-    }
-    */
-    
     
     /* Construct the server address structure */
     memset(&servAddr, 0, sizeof(servAddr));         /* Zero out structure */
@@ -179,7 +169,6 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
 		
             if (sent <= 0) {
                 perror ("error while sending");
-                out << "send() sent a different number of bytes than expected";
                 if(alloc)
                     free(sendData);
                 goto finished;
@@ -200,7 +189,8 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
         free(recBuffer);
     }
 
-    finished:	
+    //### GOTO: finished
+    finished:
     t1 = Clock::now();
 
     std::chrono::system_clock sysclock;
@@ -213,8 +203,7 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
     diff = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0);
     
     float ms =diff.count() / 1000.0;
-	
-	
+
     
     int rate = (sentBytes / (ms / 1000.0) / 1000.0) * 8.0;
     
@@ -231,6 +220,10 @@ int sendData(const char* srcIp, const char* dstIp, int byteCount, long startms, 
 
     out.flush();
     stdOutMutex.unlock();
+
+    if(byteCount - sentBytes > 0 && retries > 0) {
+        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, retries-1);
+    }
 
     return (byteCount - sentBytes);
 }
