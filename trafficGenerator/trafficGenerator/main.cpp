@@ -197,7 +197,7 @@ int main (int argc, const char * argv[])
         //cout << "flow should start at " << f.start << " diff " << diff.count() << "\n";
         
         if(diff.count() >= f.start) {
-            std::cout << diff.count() << ">=" << f.start << "\n";
+            //std::cout << diff.count() << ">=" << f.start << "\n";
             //we have to start this flow!
         } else {
             //cout << "sleeping for " << f.start - diff.count() << "\n";

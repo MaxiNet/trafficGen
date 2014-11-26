@@ -165,7 +165,7 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
             }
 		
 		
-            size_t sent = send (sock, sendData, sendThisTime, 0);
+            ssize_t sent = send (sock, sendData, sendThisTime, 0);
 		
             if (sent <= 0) {
                 perror ("error while sending");
