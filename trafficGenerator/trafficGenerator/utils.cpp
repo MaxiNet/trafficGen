@@ -27,6 +27,7 @@
 #include <iomanip>
 #include <chrono>
 #include <iostream>
+#include <netdb.h>
 
 extern int	errno;
 
@@ -69,7 +70,8 @@ bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 
-int sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream & out, const bool enablemtcp, const int retries) {
+int sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream & out,
+             const bool enablemtcp, const int participatory, const int retries) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
     struct sockaddr_in src; /* src address */
@@ -110,8 +112,8 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
     /* src struct */
     memset(&src, 0, sizeof(src));               /* Zero out structure */
     src.sin_family      = AF_INET;              /* Internet address family */
-    src.sin_addr.s_addr = inet_addr(srcIp);     /* Server IP address */
-    src.sin_port        = htons(0);             /* Server port */
+    src.sin_addr.s_addr = inet_addr(srcIp);     /* client IP address */
+    src.sin_port        = htons(0);             /* client port */
     
     
     
@@ -132,6 +134,14 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
         perror(buf);
         goto finished;
     }
+
+
+    /* PARTICIPATORY: inform the controller of this flow
+     if flow is larger than given value, we send a UDP datagram to IP 10.255.255.254
+     containing all information of the flow; the server will use this information for traffic engineering
+    */
+    if(participatory > 0)
+        informAboutElephant(participatory, srcIp, dstIp, &src, &servAddr, sock);
 
 
     
@@ -230,3 +240,54 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
 
 
 
+void informAboutElephant(const int participatory, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock) {
+    struct flowIdent fi;
+
+    socklen_t len = sizeof(struct sockaddr);
+
+    //get local ip and port:
+    if(getsockname(sock, (struct sockaddr*) src, &len) < 0) {
+       perror("getsockname");
+    } else {
+
+       fi.portSrc = src->sin_port;       //in network byte order
+       fi.portDst = servAddr->sin_port;  //in network byte order
+       fi.flowSize = htons(participatory);
+
+       memcpy(fi.ipSrc, srcIp, 16);
+       memcpy(fi.ipDst, dstIp, 16);
+    }
+
+
+    //send udp datagram:
+
+    const char* hostname="10.255.255.254";
+    const char* portname="2222";
+
+    struct addrinfo hints;
+    memset(&hints,0,sizeof(hints));
+    hints.ai_family=AF_UNSPEC;
+    hints.ai_socktype=SOCK_DGRAM;
+    hints.ai_protocol=0;
+    hints.ai_flags=AI_ADDRCONFIG;
+
+    struct addrinfo* res = 0;
+
+    if(getaddrinfo(hostname,portname,&hints,&res) < 0) {
+        perror("getaddrinfo");
+    }
+
+    int fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
+    if (fd==-1) {
+        perror("socket");
+    } else {
+        //send packet to controller:
+        if (sendto(fd,&fi,sizeof(fi), 0, res->ai_addr,res->ai_addrlen) < 0) {
+            perror("sendto");
+        }
+    }
+
+
+
+
+}

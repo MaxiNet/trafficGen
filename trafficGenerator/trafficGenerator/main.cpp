@@ -25,9 +25,9 @@ using namespace boost::threadpool;
 using namespace std;
 using namespace boost;
 
-const static char* argname[] = {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "mtcp", "logfile"};
-static const int numargs = 8;
-static const int optargs = 2;
+const static char* argname[] = {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "participatory", "mtcp", "logfile"};
+static const int numargs = 9;
+static const int optargs = 3;
 
 static const bool debug=false;
 
@@ -42,8 +42,8 @@ static void usage(const char* name,std::ostream & out)
 
 std::ostream & getOut(int argc, const char* argv[]) 
 {
-    if (argc >= 9) {
-        auto fout = new std::ofstream(argv[8]);
+    if (argc >= numargs+1) {
+        auto fout = new std::ofstream(argv[numargs]);
         return *fout;
     } else {
         return std::cout;
@@ -88,9 +88,13 @@ int main (int argc, const char * argv[])
     
     double scaleFactorTime = stod(argv[6]);
 
-    bool enablemtcp;
+	int participatory = 0;
     if (argc >= 8)
-        enablemtcp = atoi(argv[7]);
+		participatory = atoi(argv[7]);  //is not used when <= 0
+
+    bool enablemtcp;
+    if (argc >= 9)
+        enablemtcp = atoi(argv[8]);
     else
         enablemtcp= false;
 
@@ -207,7 +211,7 @@ int main (int argc, const char * argv[])
         //execute flow:
 
         tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
-                              diff.count(), std::ref(out), enablemtcp, 3)
+                              diff.count(), std::ref(out), enablemtcp, participatory, 3)
                     );
 
     }
