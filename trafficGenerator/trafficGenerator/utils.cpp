@@ -140,9 +140,10 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
      if flow is larger than given value, we send a UDP datagram to IP 10.255.255.254
      containing all information of the flow; the server will use this information for traffic engineering
     */
-    if(participatory > 0)
-        informAboutElephant(participatory, srcIp, dstIp, &src, &servAddr, sock);
-
+	if((participatory > 0) && (byteCount >= participatory)) {
+		out << byteCount << " >= " << participatory << "\n";
+        informAboutElephant(byteCount, srcIp, dstIp, &src, &servAddr, sock);
+	}
 
     
     typedef std::chrono::high_resolution_clock Clock;
@@ -240,7 +241,7 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
 
 
 
-void informAboutElephant(const int participatory, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock) {
+void informAboutElephant(const int byteCount, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock) {
     struct flowIdent fi;
 
     socklen_t len = sizeof(struct sockaddr);
@@ -252,10 +253,12 @@ void informAboutElephant(const int participatory, const char* srcIp, const char*
 
        fi.portSrc = src->sin_port;       //in network byte order
        fi.portDst = servAddr->sin_port;  //in network byte order
-       fi.flowSize = htons(participatory);
+       fi.flowSize = htonl(byteCount);
 
-       memcpy(fi.ipSrc, srcIp, 16);
-       memcpy(fi.ipDst, dstIp, 16);
+		
+		
+       strncpy(fi.ipSrc, srcIp, 16);
+       strncpy(fi.ipDst, dstIp, 16);
     }
 
 
@@ -274,16 +277,16 @@ void informAboutElephant(const int participatory, const char* srcIp, const char*
     struct addrinfo* res = 0;
 
     if(getaddrinfo(hostname,portname,&hints,&res) < 0) {
-        perror("getaddrinfo");
+        perror("getaddrinfo informAboutElephant");
     }
 
     int fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
     if (fd==-1) {
-        perror("socket");
+        perror("socket informAboutElephant");
     } else {
         //send packet to controller:
         if (sendto(fd,&fi,sizeof(fi), 0, res->ai_addr,res->ai_addrlen) < 0) {
-            perror("sendto");
+            perror("sendto informAboutElephant");
         }
     }
 

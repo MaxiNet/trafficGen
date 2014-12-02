@@ -56,21 +56,21 @@ int main (int argc, const char * argv[])
 {
     std::ostream & out= getOut(argc, argv);
 
-    if (debug) {
-        for(int i = 1; i < std::max(argc,numargs); i++) {
-            if (i - 1 < numargs)
-                out << argname[i-1] << " = ";
-            else
-                out << "argv[" << i << "] = ";
-            
-            if (i < argc)
-                out << argv[i] << endl;
-            else if ( i -1 < numargs-optargs)
-                out << " missing" << std::endl;
-            else
-                out << " optional" << std::endl;
-        }
+
+    for(int i = 1; i < std::max(argc,numargs); i++) {
+        if (i - 1 < numargs)
+            out << argname[i-1] << " = ";
+        else
+            out << "argv[" << i << "] = ";
+			
+        if (i < argc)
+            out << argv[i] << endl;
+        else if ( i -1 < numargs-optargs)
+            out << " missing" << std::endl;
+        else
+            out << " optional" << std::endl;
     }
+
     if (argc -1 < numargs-optargs) {
         std::cerr << "not enough parameters. Got " << argc -1 << " need " << numargs -optargs << std::endl;
         usage(argv[0], out);

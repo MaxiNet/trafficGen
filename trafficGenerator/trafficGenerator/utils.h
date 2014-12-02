@@ -13,6 +13,7 @@
 #include <string>
 #include <stdlib.h>
 #include <time.h>
+#include <stdint.h>
 #include <mutex>
 #include <sys/socket.h>
 struct flow;
@@ -21,16 +22,16 @@ struct flow;
 struct flowIdent {
     char ipSrc[16];     //0-15
     char ipDst[16];     //16-31
-    int portSrc;        //32-35
-    int portDst;        //36-39
-    int flowSize;       //40-43
+    uint16_t portSrc;        //32-33
+	uint16_t portDst;        //34-35
+    uint32_t flowSize;       //36-40
 };
 
 int getRackId(int serverId, int numServersPerRack);
 std::string getIp(int serverId, int numServersPerRack, std::string ipBase);
 bool compairFlow (struct flow i,struct flow j);
 
-void informAboutElephant(const int participatory, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock);
+void informAboutElephant(const int byteCount, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock);
 
 int sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream& out,
              const bool enablemtcp, const int participatory, const int retries = 3);
