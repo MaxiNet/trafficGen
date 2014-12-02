@@ -233,7 +233,7 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
     stdOutMutex.unlock();
 
     if(byteCount - sentBytes > 0 && retries > 0) {
-        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, retries-1);
+        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, participatory, retries-1);
     }
 
     return (byteCount - sentBytes);
