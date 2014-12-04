@@ -19,6 +19,7 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <signal.h>
 
 using namespace boost::threadpool;
 

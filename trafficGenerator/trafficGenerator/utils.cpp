@@ -29,6 +29,7 @@
 #include <iostream>
 #include <netdb.h>
 
+
 extern int	errno;
 
 
@@ -151,9 +152,8 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
 
     {
         void * sendData = dummyData;
-        bool alloc = false;	//did we alloc ones?
     
-        while(sentBytes < byteCount - 1 and *has_received_signal == true) {
+        while(sentBytes < byteCount - 1 and *has_received_signal == false) {
 		
             int sendThisTime = (byteCount-1) - sentBytes;
 		
@@ -173,13 +173,15 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
         }
 		
 		//this is the last message. Contains a one to mark the transmission as beeing completed.
-		char* ones = (char*)malloc(1);
+		char* ones = (char*)malloc(sizeof(char));
 		ones[0] = '1';
-        ssize_t sent = send(sock, (void*) ones, 1, 0);
+        ssize_t sent = send(sock, (void*) ones, sizeof(char), 0);
 		free(ones);
 		if (sent <= 0) {
+			perror ("error while sending '1' Byte");
 			goto finished;
 		}
+		sentBytes+=1;
 		
 		
     }
@@ -227,7 +229,7 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
     out.flush();
     stdOutMutex.unlock();
 
-    if(byteCount - sentBytes > 0 && retries > 0) {
+    if(byteCount - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
         sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, participatory, retries-1, has_received_signal);
     }
 
