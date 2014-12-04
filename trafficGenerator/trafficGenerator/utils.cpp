@@ -141,7 +141,6 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
      containing all information of the flow; the server will use this information for traffic engineering
     */
 	if((participatory > 0) && (byteCount >= participatory)) {
-		out << byteCount << " >= " << participatory << "\n";
         informAboutElephant(byteCount, srcIp, dstIp, &src, &servAddr, sock);
 	}
 
