@@ -71,7 +71,7 @@ bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 int sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream & out,
-             const bool enablemtcp, const int participatory, const int retries) {
+             const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
     struct sockaddr_in src; /* src address */
@@ -153,43 +153,35 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
         void * sendData = dummyData;
         bool alloc = false;	//did we alloc ones?
     
-        while(sentBytes < byteCount) {
+        while(sentBytes < byteCount - 1 and *has_received_signal == true) {
 		
-            int sendThisTime = byteCount - sentBytes;
+            int sendThisTime = (byteCount-1) - sentBytes;
 		
             if(sendThisTime > 64*1024)
                 sendThisTime = 64*1024;
-		
-		
-            //this is the last message. Fill them with ones to mark the transmission as beeing completed.
-            if((byteCount - sentBytes) - sendThisTime == 0) {
-                char* ones = (char*)malloc(sendThisTime);
-                alloc = true;
-                for(int i = 0; i < sendThisTime-1; i++) {
-                    ones[i] = '0';
-                }
-                ones[sendThisTime-1] = '1';
-                sendData = ones;
-            } else {
-                alloc = false;
-            }
-		
+	
 		
             ssize_t sent = send (sock, sendData, sendThisTime, 0);
 		
             if (sent <= 0) {
                 perror ("error while sending");
-                if(alloc)
-                    free(sendData);
                 goto finished;
             }
-		
-            if(alloc)
-                free(sendData);
 		
             sentBytes += sent;
 
         }
+		
+		//this is the last message. Contains a one to mark the transmission as beeing completed.
+		char* ones = (char*)malloc(1);
+		ones[0] = '1';
+        ssize_t sent = send(sock, (void*) ones, 1, 0);
+		free(ones);
+		if (sent <= 0) {
+			goto finished;
+		}
+		
+		
     }
 
 	{
@@ -223,16 +215,20 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
     auto ctime = std::chrono::system_clock::to_time_t(tnow);
     if (!std::strftime(mbstr, sizeof(mbstr), "%c %Z ", std::localtime(&ctime)))
         std::cerr << "Failed to call strftime?" << std::endl;
+		
+	auto marker = " finished";
+	if(*has_received_signal == true)
+		marker = " aborted";
 
     auto endms = startms + (diff.count()/1000);
     out << startms << " " <<  endms << " " << sentBytes << " of " << byteCount << " bytes in " << ms << " ms " << rate
-        << " kbit/s from "  << srcIp << " to " << dstIp << std::endl;
+        << " kbit/s from "  << srcIp << " to " << dstIp << marker << std::endl;
 
     out.flush();
     stdOutMutex.unlock();
 
     if(byteCount - sentBytes > 0 && retries > 0) {
-        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, participatory, retries-1);
+        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, participatory, retries-1, has_received_signal);
     }
 
     return (byteCount - sentBytes);

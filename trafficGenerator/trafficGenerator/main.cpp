@@ -31,6 +31,8 @@ static const int optargs = 3;
 
 static const bool debug=false;
 
+static bool has_received_signal=false;
+
 static void usage(const char* name,std::ostream & out)
 {
     out << "usage: " << name;
@@ -50,12 +52,17 @@ std::ostream & getOut(int argc, const char* argv[])
     }
 }
 
+void setFlag(int sig) {
+	has_received_signal = true;
+}
 
 
 int main (int argc, const char * argv[])
 {
     std::ostream & out= getOut(argc, argv);
 
+	(void) signal(SIGUSR1,setFlag);
+	
 
     for(int i = 1; i < std::max(argc,numargs); i++) {
         if (i - 1 < numargs)
@@ -211,7 +218,7 @@ int main (int argc, const char * argv[])
         //execute flow:
 
         tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
-                              diff.count(), std::ref(out), enablemtcp, participatory, 3)
+                              diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal)
                     );
 
     }

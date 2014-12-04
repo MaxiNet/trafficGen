@@ -34,7 +34,7 @@ bool compairFlow (struct flow i,struct flow j);
 void informAboutElephant(const int byteCount, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock);
 
 int sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream& out,
-             const bool enablemtcp, const int participatory, const int retries);
+             const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal);
 
 int diff_ms(timeval t1, timeval t2);
 
