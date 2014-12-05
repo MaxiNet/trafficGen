@@ -20,6 +20,7 @@
 #include <thread>
 #include <mutex>
 #include <signal.h>
+#include <unistd.h>
 
 using namespace boost::threadpool;
 
@@ -33,6 +34,7 @@ static const int optargs = 3;
 static const bool debug=false;
 
 static bool has_received_signal=false;
+static bool has_received_signal_go=false;
 
 static void usage(const char* name,std::ostream & out)
 {
@@ -57,12 +59,17 @@ void setFlag(int sig) {
 	has_received_signal = true;
 }
 
+void gogogo(int sig) {
+	has_received_signal_go = true;
+}
+
 
 int main (int argc, const char * argv[])
 {
     std::ostream & out= getOut(argc, argv);
 
 	(void) signal(SIGUSR1,setFlag);
+	(void) signal(SIGUSR2,gogogo);
 	
 
     for(int i = 1; i < std::max(argc,numargs); i++) {
@@ -185,9 +192,15 @@ int main (int argc, const char * argv[])
     
     //send data according to schedule.
     
-    pool tp(8);   //create a thread pool
+    pool tp(16);   //create a thread pool
     
-    
+	
+	
+	//waiting for GO signal:
+	while(has_received_signal_go == false) {
+		sleep(1);
+	}
+	
 
     
     //tp->schedule(boost::bind(task_with_parameter, 42));
