@@ -11,8 +11,8 @@ fi
 #g++ -std=gnu++11 -pthread -o server TCPEchoServer-Thread.c DieWithError.c HandleTCPClient.c AcceptTCPConnection.c CreateTCPServerSocket.c
 
 cd $srcDir/trafficGeneratorServer/trafficGeneratorServer/trafficGeneratorServer
-$CXX -std=gnu++11 -Wall  -g -pthread -o server main.cpp
+$CXX -std=gnu++11 -Wall  -g -pthread -o server main.cpp -I /usr/local/Cellar/boost/1.56.0/include
 
 
 cd $srcDir/trafficGenerator/trafficGenerator
-$CXX -pthread -g -Wall -std=gnu++11 -I../../threadpool/boost/ main.cpp utils.cpp -lboost_thread -lboost_system -o traffGen
+$CXX -pthread -g -Wall -std=gnu++11 -I../../threadpool/boost/ main.cpp utils.cpp -lboost_thread -lboost_system -o traffGen -I /usr/local/Cellar/boost/1.56.0/include

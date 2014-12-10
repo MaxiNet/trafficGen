@@ -156,7 +156,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
-					/Users/wette/promotion/forschung/dataCenterTrafficGenerator/trafficGen/threadpool/boost,
+					../threadpool/boost,
 				);
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
@@ -188,7 +188,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
-					/Users/wette/promotion/forschung/dataCenterTrafficGenerator/trafficGen/threadpool/boost,
+					../threadpool/boost,
 				);
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
