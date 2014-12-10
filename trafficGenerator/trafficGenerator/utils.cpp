@@ -72,7 +72,8 @@ bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 int sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream & out,
-             const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal) {
+             const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal,
+			 pthread_mutex_t* running_mutex, volatile int* running_threads) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
     struct sockaddr_in src; /* src address */
@@ -230,8 +231,12 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
     stdOutMutex.unlock();
 
     if(byteCount - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
-        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, participatory, retries-1, has_received_signal);
+        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, participatory, retries-1, has_received_signal, running_mutex, running_threads);
     }
+		
+	pthread_mutex_lock(running_mutex);
+	*running_threads = *running_threads - 1;
+	pthread_mutex_unlock(running_mutex);
 
     return (byteCount - sentBytes);
 }

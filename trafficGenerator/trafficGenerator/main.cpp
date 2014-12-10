@@ -164,6 +164,7 @@ int main (int argc, const char * argv[])
                 f.bytes = f.bytes*2;
             
             if(f.bytes > 1) {
+//            if(f.bytes > 1 && f.bytes < 30*1000*1000) {
                 flows.push_back(f);
                 numFlows++;
             }
@@ -192,7 +193,7 @@ int main (int argc, const char * argv[])
     
     //send data according to schedule.
     
-    pool tp(16);   //create a thread pool
+    //pool tp(256);   //create a large thread pool
     
 	
 	
@@ -214,6 +215,9 @@ int main (int argc, const char * argv[])
     Clock::time_point t0 = Clock::now();
     Clock::time_point t1;
     milliseconds diff;
+	
+	volatile int running_threads = 0;
+	pthread_mutex_t running_mutex = PTHREAD_MUTEX_INITIALIZER;
     
     for (struct flow f:flows) {
         t1 = Clock::now();
@@ -231,13 +235,31 @@ int main (int argc, const char * argv[])
         }
         //execute flow:
 
-        tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
-                              diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal)
-                    );
+        // tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
+        //                      diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal)
+        //            );
+		
+		pthread_mutex_lock(&running_mutex);
+		running_threads++;
+		pthread_mutex_unlock(&running_mutex);
+		
+		new std::thread(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
+				   diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal, &running_mutex, &running_threads);
+		
 
     }
-    
-    
+	
+	pthread_mutex_lock(&running_mutex);
+	int n = running_threads;
+	pthread_mutex_unlock(&running_mutex);
+	while(n > 0) {
+		pthread_mutex_lock(&running_mutex);
+		n = running_threads;
+		pthread_mutex_unlock(&running_mutex);
+		sleep(1);
+	}
+	
+	
     return 0;
 }
 
