@@ -164,7 +164,6 @@ int main (int argc, const char * argv[])
                 f.bytes = f.bytes*2;
             
             if(f.bytes > 1) {
-//            if(f.bytes > 1 && f.bytes < 30*1000*1000) {
                 flows.push_back(f);
                 numFlows++;
             }
