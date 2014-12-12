@@ -23,8 +23,6 @@
 #include <unistd.h>
 #include <boost/program_options.hpp>
 
-using namespace std;
-
 namespace po = boost::program_options;
 
 
@@ -32,6 +30,11 @@ static const bool debug=false;
 
 static bool has_received_signal=false;
 static bool has_received_signal_go=false;
+
+
+std::ostream & getOut(const std::string outfile);
+void setFlag(int sig);
+void gogogo(int sig);
 
 
 std::ostream & getOut(const std::string outfile)
@@ -66,11 +69,11 @@ int main (int argc, const char * argv[])
 
 
     int hostsPerRack;
-    string ipBase;
+    std::string ipBase;
     
     int hostId;
 
-    string flowFile;
+    std::string flowFile;
 
     double scaleFactorSize;
     
@@ -109,9 +112,9 @@ int main (int argc, const char * argv[])
     po::notify(vm);
 
     //read flows from file - only hold the ones we really want to have:
-    ifstream infile;
+    std::ifstream infile;
 	infile.open (flowFile.c_str());
-    string line;
+    std::string line;
     
     std::vector<struct flow> flows;
 
@@ -135,7 +138,7 @@ int main (int argc, const char * argv[])
         
         //check if this flow belongs to us:
         size_t pos = line.find_first_of(",");
-        string sid = "";
+        std::string sid = "";
         if(pos!=std::string::npos) {
             sid = line.substr(0, pos);
         }
@@ -151,7 +154,7 @@ int main (int argc, const char * argv[])
             f.fromString(line, ipBase, hostsPerRack, scaleFactorSize, scaleFactorTime);
 			
             if(debug)
-                out << "flow from " << f.fromIP << " to " << f.toIP  << endl;
+                out << "flow from " << f.fromIP << " to " << f.toIP  << std::endl;
 
             if (cutofftime > 0 && cutofftime * scaleFactorTime > f.start )
                 // Ignore the flow
@@ -165,14 +168,14 @@ int main (int argc, const char * argv[])
                 flows.push_back(f);
                 numFlows++;
             }
-            cout << ".";
+            out << ".";
         }
 
     }
 	infile.close();
-    out  << endl;
+    out  << std::endl;
     
-    out << "read " << numFlows << " flows. Using " << flows.size() << " flows" << endl;
+    out << "read " << numFlows << " flows. Using " << flows.size() << " flows" << std::endl;
     
     //sort by time:
     std::sort(flows.begin(), flows.end(), compairFlow);
@@ -186,14 +189,6 @@ int main (int argc, const char * argv[])
 		out << std::endl;
 	}
     
-    cout << "creating thread pool..."  << endl;
-    
-    //send data according to schedule.
-    
-    //pool tp(256);   //create a large thread pool
-    
-	
-	
 	//waiting for GO signal:
 	while(has_received_signal_go == false) {
 		sleep(1);
@@ -204,7 +199,7 @@ int main (int argc, const char * argv[])
     //tp->schedule(boost::bind(task_with_parameter, 42));
     
     
-    out << "start scheduling flows..."  << endl;
+    out << "start scheduling flows..."  << std::endl;
     
     typedef std::chrono::high_resolution_clock Clock;
     typedef std::chrono::milliseconds milliseconds;

@@ -71,7 +71,7 @@ bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 
-int sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream & out,
+ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream & out,
              const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal,
 			 pthread_mutex_t* running_mutex, volatile int* running_threads) {
     int sock;
@@ -156,7 +156,7 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
     
         while(sentBytes < byteCount - 1 and *has_received_signal == false) {
 		
-            int sendThisTime = (byteCount-1) - sentBytes;
+            auto sendThisTime = (byteCount-1) - sentBytes;
 		
             if(sendThisTime > 64*1024)
                 sendThisTime = 64*1024;
