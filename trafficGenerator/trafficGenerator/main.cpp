@@ -37,6 +37,7 @@ static bool has_received_signal_go=false;
 std::ostream & getOut(const std::string outfile)
 {
     if (outfile != "-") {
+        std::cout << "Using file \"" << outfile << "\" as log output" << std::endl;
         auto fout = new std::ofstream(outfile);
         return *fout;
     } else {
@@ -61,11 +62,7 @@ int main (int argc, const char * argv[])
 	
 
 
-    boost::program_options::positional_options_description pd;
 
-    for (const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "participatory"}) {
-        pd.add (arg, 1);
-    }
 
 
     int hostsPerRack;
@@ -99,8 +96,13 @@ int main (int argc, const char * argv[])
     ("participatory", po::value<int>(&participatory)->default_value(0), "Announce flows larger than this")
     ("mptcp", po::value<bool>(&enablemtcp)->default_value(false), "Enable MPTCP per socket option")
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
-    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flower newer than this")
+    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this")
     ;
+
+    boost::program_options::positional_options_description pd;
+    for (const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "participatory"}) {
+        pd.add (arg, 1);
+    }
 
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
@@ -168,9 +170,9 @@ int main (int argc, const char * argv[])
 
     }
 	infile.close();
-    cout  << endl;
+    out  << endl;
     
-    cout << "read " << numFlows << " flows. Using " << flows.size() << " flows" << endl;
+    out << "read " << numFlows << " flows. Using " << flows.size() << " flows" << endl;
     
     //sort by time:
     std::sort(flows.begin(), flows.end(), compairFlow);
@@ -202,7 +204,7 @@ int main (int argc, const char * argv[])
     //tp->schedule(boost::bind(task_with_parameter, 42));
     
     
-    cout << "start scheduling flows..."  << endl;
+    out << "start scheduling flows..."  << endl;
     
     typedef std::chrono::high_resolution_clock Clock;
     typedef std::chrono::milliseconds milliseconds;
