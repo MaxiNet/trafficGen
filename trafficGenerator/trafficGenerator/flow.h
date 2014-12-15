@@ -43,11 +43,6 @@ struct flow {
         
         fromIP = getIp(fromId, numServersPerRack, ipBase);
         toIP = getIp(toId, numServersPerRack, ipBase);
-		
-
-		
-		
-        
         
     }
 };

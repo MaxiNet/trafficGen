@@ -21,34 +21,27 @@
 #include <mutex>
 #include <signal.h>
 #include <unistd.h>
+#include <boost/program_options.hpp>
 
-using namespace boost::threadpool;
+namespace po = boost::program_options;
 
-using namespace std;
-using namespace boost;
-
-const static char* argname[] = {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "participatory", "mtcp", "logfile"};
-static const int numargs = 9;
-static const int optargs = 3;
 
 static const bool debug=false;
 
 static bool has_received_signal=false;
 static bool has_received_signal_go=false;
 
-static void usage(const char* name,std::ostream & out)
+
+std::ostream & getOut(const std::string outfile);
+void setFlag(int sig);
+void gogogo(int sig);
+
+
+std::ostream & getOut(const std::string outfile)
 {
-    out << "usage: " << name;
-    for (unsigned int i=0;i < numargs;i++)
-        out << " "<< argname[i];
-
-}
-
-
-std::ostream & getOut(int argc, const char* argv[]) 
-{
-    if (argc >= numargs+1) {
-        auto fout = new std::ofstream(argv[numargs]);
+    if (outfile != "-") {
+        std::cout << "Using file \"" << outfile << "\" as log output" << std::endl;
+        auto fout = new std::ofstream(outfile);
         return *fout;
     } else {
         return std::cout;
@@ -66,64 +59,69 @@ void gogogo(int sig) {
 
 int main (int argc, const char * argv[])
 {
-    std::ostream & out= getOut(argc, argv);
 
-	(void) signal(SIGUSR1,setFlag);
-	(void) signal(SIGUSR2,gogogo);
+	(void) signal(SIGUSR1, setFlag);
+	(void) signal(SIGUSR2, gogogo);
 	
 
-    for(int i = 1; i < std::max(argc,numargs); i++) {
-        if (i - 1 < numargs)
-            out << argname[i-1] << " = ";
-        else
-            out << "argv[" << i << "] = ";
-			
-        if (i < argc)
-            out << argv[i] << endl;
-        else if ( i -1 < numargs-optargs)
-            out << " missing" << std::endl;
-        else
-            out << " optional" << std::endl;
-    }
 
-    if (argc -1 < numargs-optargs) {
-        std::cerr << "not enough parameters. Got " << argc -1 << " need " << numargs -optargs << std::endl;
-        usage(argv[0], out);
-        return 1;
-    }
-	
-    int hostsPerRack = atoi(argv[1]);
-    string ipBase = argv[2];
+
+
+
+    int hostsPerRack;
+    std::string ipBase;
     
-    int hostId = atoi(argv[3]);
+    int hostId;
 
-    string flowFile = argv[4];
+    std::string flowFile;
 
-    double scaleFactorSize = stod(argv[5]);
+    double scaleFactorSize;
     
-    double scaleFactorTime = stod(argv[6]);
+    double scaleFactorTime;
 
-	int participatory = 0;
-    if (argc >= 8)
-		participatory = atoi(argv[7]);  //is not used when <= 0
+	int participatory;
 
     bool enablemtcp;
-    if (argc >= 9)
-        enablemtcp = atoi(argv[8]);
-    else
-        enablemtcp= false;
-
+    long cutofftime;
     typedef std::chrono::high_resolution_clock Clock;
 
-    
+
+    // Declare the supported options.
+    po::options_description desc("Allowed options");
+    desc.add_options()
+    ("help", "produce help message")
+    ("hostsPerRack", po::value<int>(&hostsPerRack)->required(), "hosts per Rack")
+    ("ipBase", po::value<std::string>(&ipBase)->required(), "prefix of all IPs, e.g. 10.0")
+    ("hostId", po::value<int>(&hostId)->required(), "id of the own host (starts at 0?)")
+    ("flowFile", po::value<std::string>(&flowFile)->required(), "flowfile to read at startup")
+    ("scaleFactorSize", po::value<double>(&scaleFactorSize)->required(), "Multiply each flow size by this factor")
+    ("scaleFactorTime", po::value<double>(&scaleFactorTime)->required(), "Timedillation factor, larger is slower")
+    ("participatory", po::value<int>(&participatory)->default_value(0), "Announce flows larger than this")
+    ("mptcp", po::value<bool>(&enablemtcp)->default_value(false), "Enable MPTCP per socket option")
+    ("logFile", po::value<std::string>()->default_value("-"), "Log file")
+    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this")
+    ;
+
+    boost::program_options::positional_options_description pd;
+    for (const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "participatory"}) {
+        pd.add (arg, 1);
+    }
+
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
+    po::notify(vm);
+
     //read flows from file - only hold the ones we really want to have:
-    ifstream infile;
+    std::ifstream infile;
 	infile.open (flowFile.c_str());
-    string line;
+    std::string line;
     
     std::vector<struct flow> flows;
 
     int numFlows = 0;
+
+    std::ostream & out= getOut(vm["logFile"].as<std::string>());
+
     if(!infile.good()) {
         out << "Some errors has occured opening " << flowFile << std::endl;
         return 7;
@@ -140,7 +138,7 @@ int main (int argc, const char * argv[])
         
         //check if this flow belongs to us:
         size_t pos = line.find_first_of(",");
-        string sid = "";
+        std::string sid = "";
         if(pos!=std::string::npos) {
             sid = line.substr(0, pos);
         }
@@ -156,9 +154,12 @@ int main (int argc, const char * argv[])
             f.fromString(line, ipBase, hostsPerRack, scaleFactorSize, scaleFactorTime);
 			
             if(debug)
-                out << "flow from " << f.fromIP << " to " << f.toIP  << endl;
-			
-            
+                out << "flow from " << f.fromIP << " to " << f.toIP  << std::endl;
+
+            if (cutofftime > 0 && cutofftime * scaleFactorTime > f.start )
+                // Ignore the flow
+                continue;
+
             // WATT?!
             if(f.bytes < 1)
                 f.bytes = f.bytes*2;
@@ -167,14 +168,14 @@ int main (int argc, const char * argv[])
                 flows.push_back(f);
                 numFlows++;
             }
-            cout << ".";
+            out << ".";
         }
 
     }
 	infile.close();
-    cout  << endl;
+    out  << std::endl;
     
-    cout << "read " << numFlows << " flows. Using " << flows.size() << " flows" << endl;
+    out << "read " << numFlows << " flows. Using " << flows.size() << " flows" << std::endl;
     
     //sort by time:
     std::sort(flows.begin(), flows.end(), compairFlow);
@@ -188,14 +189,6 @@ int main (int argc, const char * argv[])
 		out << std::endl;
 	}
     
-    cout << "creating thread pool..."  << endl;
-    
-    //send data according to schedule.
-    
-    //pool tp(256);   //create a large thread pool
-    
-	
-	
 	//waiting for GO signal:
 	while(has_received_signal_go == false) {
 		sleep(1);
@@ -206,7 +199,7 @@ int main (int argc, const char * argv[])
     //tp->schedule(boost::bind(task_with_parameter, 42));
     
     
-    cout << "start scheduling flows..."  << endl;
+    out << "start scheduling flows..."  << std::endl;
     
     typedef std::chrono::high_resolution_clock Clock;
     typedef std::chrono::milliseconds milliseconds;
