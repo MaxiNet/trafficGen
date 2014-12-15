@@ -1,5 +1,3 @@
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +19,7 @@
 
 /* port we're listening on */
 #define PORT 13373
+#define BUFSIZE 2*1024*1024
 
 int main(int argc, char *argv[])
 {
@@ -39,7 +38,7 @@ int main(int argc, char *argv[])
 	/* newly accept()ed socket descriptor */
 	int newfd;
 	/* buffer for client data */
-	char buf[64*1024];
+	char buf[BUFSIZE];
 	int nbytes;
 	/* for setsockopt() SO_REUSEADDR, below */
 	uint addrlen;

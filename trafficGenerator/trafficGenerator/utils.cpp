@@ -32,10 +32,11 @@
 
 extern int	errno;
 
+#define BUFSIZE 2*1024*1024
 
 
 
-void* dummyData = calloc(64*1024, 8); //dummy data for sending.
+void* dummyData = calloc(BUFSIZE, 8); //dummy data for sending.
 
 
 
@@ -158,8 +159,8 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
 		
             int sendThisTime = (byteCount-1) - sentBytes;
 		
-            if(sendThisTime > 64*1024)
-                sendThisTime = 64*1024;
+            if(sendThisTime > BUFSIZE)
+                sendThisTime = BUFSIZE;
 	
 		
             ssize_t sent = send (sock, sendData, sendThisTime, 0);
@@ -189,8 +190,8 @@ int sendData(const char* srcIp, const char* dstIp, const int byteCount, const lo
 
 	{
         //wait for the connection to be closed by the remote peer.
-        char* recBuffer = (char*)malloc(64*1024);
-        recv(sock, recBuffer, 64*1024, 0);
+        char* recBuffer = (char*)malloc(BUFSIZE);
+        recv(sock, recBuffer, BUFSIZE, 0);
         free(recBuffer);
     }
 
