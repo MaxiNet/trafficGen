@@ -250,6 +250,8 @@ int main (int argc, const char * argv[])
 		pthread_mutex_unlock(&running_mutex);
 		sleep(1);
 	}
+
+    out << "All threads finished";
 	
 	
     return 0;
