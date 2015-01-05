@@ -16,7 +16,7 @@ struct flow {
     int fromId;
     int toId;
     long long start; //start in ms.
-    size_t bytes;
+    ssize_t bytes;
     std::string fromIP;
     std::string toIP;
     int number;

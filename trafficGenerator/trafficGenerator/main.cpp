@@ -99,7 +99,7 @@ int main (int argc, const char * argv[])
     ("participatory", po::value<int>(&participatory)->default_value(0), "Announce flows larger than this")
     ("mptcp", po::value<bool>(&enablemtcp)->default_value(false), "Enable MPTCP per socket option")
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
-    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this [s]")
+    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this [ms]")
     ;
 
     boost::program_options::positional_options_description pd;
@@ -156,7 +156,7 @@ int main (int argc, const char * argv[])
             if(debug)
                 out << "flow from " << f.fromIP << " to " << f.toIP  << std::endl;
 
-            if (cutofftime > 0 && cutofftime * scaleFactorTime > f.start )
+            if (cutofftime > 0 && f.start > (cutofftime * scaleFactorTime) )
                 // Ignore the flow
                 continue;
             
