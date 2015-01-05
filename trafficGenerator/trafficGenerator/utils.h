@@ -31,11 +31,9 @@ int getRackId(int serverId, int numServersPerRack);
 std::string getIp(int serverId, int numServersPerRack, std::string ipBase);
 bool compairFlow (struct flow i,struct flow j);
 
-void informAboutElephant(const int byteCount, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock);
+void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock);
 
-ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream& out,
-             const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal, pthread_mutex_t* running_mutex,
-			 volatile int* running_threads);
+ssize_t sendData(const flow f, const long startms, std::ostream& out, const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal, pthread_mutex_t* running_mutex, volatile int* running_threads);
 
 int diff_ms(timeval t1, timeval t2);
 

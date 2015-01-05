@@ -72,7 +72,7 @@ bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 
-ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream & out,
+ssize_t sendData(const flow f, const long startms, std::ostream & out,
              const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal,
 			 pthread_mutex_t* running_mutex, volatile int* running_threads) {
     int sock;
@@ -109,13 +109,13 @@ ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, cons
     /* Construct the server address structure */
     memset(&servAddr, 0, sizeof(servAddr));         /* Zero out structure */
     servAddr.sin_family      = AF_INET;             /* Internet address family */
-    servAddr.sin_addr.s_addr = inet_addr(dstIp);    /* Server IP address */
+    servAddr.sin_addr.s_addr = inet_addr(f.toIP.c_str());    /* Server IP address */
     servAddr.sin_port        = htons(13373);        /* Server port */
     
     /* src struct */
     memset(&src, 0, sizeof(src));               /* Zero out structure */
     src.sin_family      = AF_INET;              /* Internet address family */
-    src.sin_addr.s_addr = inet_addr(srcIp);     /* client IP address */
+    src.sin_addr.s_addr = inet_addr(f.fromIP.c_str());     /* client IP address */
     src.sin_port        = htons(0);             /* client port */
     
     
@@ -123,7 +123,7 @@ ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, cons
     //bind socket to src ip:
     if (bind(sock, (struct sockaddr*)&src, sizeof src) != 0) {
         char buf[200];
-        sprintf(buf, "could not bind to %s", srcIp);
+        sprintf(buf, "could not bind to %s", f.fromIP.c_str());
         perror(buf);
         return -2;
     }
@@ -133,7 +133,7 @@ ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, cons
     /* Establish the connection to the echo server */
     if (connect(sock, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
         char buf[200];
-        sprintf(buf, "connect to %s failed", dstIp);
+        sprintf(buf, "connect to %s failed", f.toIP.c_str());
         perror(buf);
         goto finished;
     }
@@ -143,8 +143,8 @@ ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, cons
      if flow is larger than given value, we send a UDP datagram to IP 10.255.255.254
      containing all information of the flow; the server will use this information for traffic engineering
     */
-	if((participatory > 0) && (byteCount >= participatory)) {
-        informAboutElephant(byteCount, srcIp, dstIp, &src, &servAddr, sock);
+	if((participatory > 0) && (f.bytes >= participatory)) {
+        informAboutElephant(f, &src, &servAddr, sock);
 	}
 
     
@@ -155,9 +155,9 @@ ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, cons
     {
         void * sendData = dummyData;
     
-        while(sentBytes < byteCount - 1 and *has_received_signal == false) {
+        while(sentBytes < f.bytes - 1 and *has_received_signal == false) {
 		
-            auto sendThisTime = (byteCount-1) - sentBytes;
+            auto sendThisTime = (f.bytes-1) - sentBytes;
 		
             if(sendThisTime > BUFSIZE)
                 sendThisTime = BUFSIZE;
@@ -225,26 +225,26 @@ ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, cons
 		marker = " aborted";
 
     auto endms = startms + (diff.count()/1000);
-    out << startms << " " <<  endms << " " << sentBytes << " of " << byteCount << " bytes in " << ms << " ms " << rate
-        << " kbit/s from "  << srcIp << " to " << dstIp << marker << std::endl;
+    out << startms << " " <<  endms << " " << sentBytes << " of " << f.bytes << " bytes in " << ms << " ms " << rate
+        << " kbit/s from "  << f.fromIP << " to " << f.toId << marker << " #" << f.number << std::endl;
 
     out.flush();
     stdOutMutex.unlock();
 
-    if(byteCount - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
-        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, participatory, retries-1, has_received_signal, running_mutex, running_threads);
+    if(f.bytes - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
+        sendData(f, startms, out, enablemtcp, participatory, retries-1, has_received_signal, running_mutex, running_threads);
     }
 		
 	pthread_mutex_lock(running_mutex);
 	*running_threads = *running_threads - 1;
 	pthread_mutex_unlock(running_mutex);
 
-    return (byteCount - sentBytes);
+    return (f.bytes - sentBytes);
 }
 
 
 
-void informAboutElephant(const int byteCount, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock) {
+void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock) {
     struct flowIdent fi;
 
     socklen_t len = sizeof(struct sockaddr);
@@ -256,12 +256,12 @@ void informAboutElephant(const int byteCount, const char* srcIp, const char* dst
 
        fi.portSrc = src->sin_port;       //in network byte order
        fi.portDst = servAddr->sin_port;  //in network byte order
-       fi.flowSize = htonl(byteCount);
+       fi.flowSize = htonl(f.bytes);
 
 		
 		
-       strncpy(fi.ipSrc, srcIp, 16);
-       strncpy(fi.ipDst, dstIp, 16);
+       strncpy(fi.ipSrc, f.fromIP.c_str(), 16);
+       strncpy(fi.ipDst, f.toIP.c_str(), 16);
     }
 
 

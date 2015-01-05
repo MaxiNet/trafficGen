@@ -166,7 +166,7 @@ int main (int argc, const char * argv[])
             
             if(f.bytes > 1) {
                 flows.push_back(f);
-                numFlows++;
+                f.number = numFlows++;
             }
             out << ".";
         }
@@ -235,9 +235,8 @@ int main (int argc, const char * argv[])
 		running_threads++;
 		pthread_mutex_unlock(&running_mutex);
 		
-		new std::thread(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
-				   diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal, &running_mutex, &running_threads);
-		
+		std::thread runner(sendData, f, diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal, &running_mutex, &running_threads);
+        runner.detach();
 
     }
 	

@@ -19,6 +19,7 @@ struct flow {
     double bytes;
     std::string fromIP;
     std::string toIP;
+    int number;
     
     void fromString(std::string line, std::string ipBase, int numServersPerRack, double scaleFactorSize, double scaleFactorTime) {
         //style= 1, 4, 40.06287, 11045.23 (from, to, time, bytes)
