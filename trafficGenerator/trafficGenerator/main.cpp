@@ -99,7 +99,7 @@ int main (int argc, const char * argv[])
     ("participatory", po::value<int>(&participatory)->default_value(0), "Announce flows larger than this")
     ("mptcp", po::value<bool>(&enablemtcp)->default_value(false), "Enable MPTCP per socket option")
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
-    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this")
+    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this [s]")
     ;
 
     boost::program_options::positional_options_description pd;
@@ -171,7 +171,7 @@ int main (int argc, const char * argv[])
 	infile.close();
     out  << std::endl;
     
-    out << "read " << numFlows << " flows. Using " << flows.size() << " flows" << std::endl;
+    out << "read " << numFlows << " flows. Using " << flows.size() << " flows (cutoff " << cutofftime << ")" << std::endl;
     
     //sort by time:
     std::sort(flows.begin(), flows.end(), compairFlow);
