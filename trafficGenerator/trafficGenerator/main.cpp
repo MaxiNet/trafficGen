@@ -159,12 +159,8 @@ int main (int argc, const char * argv[])
             if (cutofftime > 0 && cutofftime * scaleFactorTime > f.start )
                 // Ignore the flow
                 continue;
-
-            // WATT?!
-            if(f.bytes < 1)
-                f.bytes = f.bytes*2;
             
-            if(f.bytes > 1) {
+            if(f.bytes >= 1) {
                 flows.push_back(f);
                 f.number = numFlows++;
             }
