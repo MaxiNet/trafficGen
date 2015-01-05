@@ -246,7 +246,8 @@ int main (int argc, const char * argv[])
 		sleep(1);
 	}
 
-    out << "All threads finished";
+    out << "All threads finished" << std::endl;
+    out.flush();
 	
 	
     return 0;
