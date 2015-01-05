@@ -111,7 +111,7 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
     servAddr.sin_family      = AF_INET;             /* Internet address family */
     servAddr.sin_addr.s_addr = inet_addr(f.toIP.c_str());    /* Server IP address */
     servAddr.sin_port        = htons(13373);        /* Server port */
-    
+
     /* src struct */
     memset(&src, 0, sizeof(src));               /* Zero out structure */
     src.sin_family      = AF_INET;              /* Internet address family */
@@ -226,7 +226,7 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
 
     auto endms = startms + (diff.count()/1000);
     out << startms << " " <<  endms << " " << sentBytes << " of " << f.bytes << " bytes in " << ms << " ms " << rate
-        << " kbit/s from "  << f.fromIP << " to " << f.toId << marker << " #" << f.number << std::endl;
+        << " kbit/s from "  << f.fromIP << " to " << f.toIP << marker << " #" << f.number << std::endl;
 
     out.flush();
     stdOutMutex.unlock();
