@@ -292,8 +292,4 @@ void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockadd
             perror("sendto informAboutElephant");
         }
     }
-
-
-
-
 }

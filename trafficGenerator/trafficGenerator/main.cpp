@@ -162,7 +162,7 @@ int main (int argc, const char * argv[])
             
             if(f.bytes >= 1) {
                 flows.push_back(f);
-                f.number = numFlows++;
+                numFlows++;
             }
             out << ".";
         }
@@ -175,6 +175,10 @@ int main (int argc, const char * argv[])
     
     //sort by time:
     std::sort(flows.begin(), flows.end(), compairFlow);
+    int i=0;
+    for (auto & f: flows){
+        f.number=i++;
+    }
     
    //debug
 	if(debug) {
