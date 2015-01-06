@@ -43,14 +43,14 @@ void* dummyData = calloc(BUFSIZE, 8); //dummy data for sending.
 static std::mutex stdOutMutex;
 
 
-// Host IDs start at 1 
+// Host IDs start at 1
 // Rack IDs start at 1
 // IP parts start at 1
 
 int getRackId(int serverId, int numServersPerRack) {
     int r = ((serverId - 1) / numServersPerRack) + 1;
 
-    // 
+    //
     // 1-n -> 1
     // n+1 - 2n ->2
     // ...
@@ -60,9 +60,9 @@ int getRackId(int serverId, int numServersPerRack) {
 std::string getIp(int serverId, int numServersPerRack, std::string ipBase) {
     int r = getRackId(serverId, numServersPerRack);
     int s = serverId - (r-1)*numServersPerRack;
-    
+
     //return "127.0.0.1";
-    
+
     return ipBase + "." + std::to_string(r) + "." + std::to_string(s);
 }
 
@@ -73,19 +73,19 @@ bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 ssize_t sendData(const flow f, const long startms, std::ostream & out,
-             const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal,
-			 pthread_mutex_t* running_mutex, volatile int* running_threads) {
+                 const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal,
+                 pthread_mutex_t* running_mutex, volatile int* running_threads) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
     struct sockaddr_in src; /* src address */
-    
+
     typedef std::chrono::high_resolution_clock Clock;
     typedef std::chrono::microseconds microseconds;
-    
+
     Clock::time_point t0 = Clock::now();
     Clock::time_point t1;
     microseconds diff;
-    
+
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         out << "socket() failed";
         return -1;
@@ -96,16 +96,17 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
 #define MPTCP_ENABLED          26
 #endif
     int enablemtcpint = enablemtcp;
-    if(setsockopt(sock, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint)) && enablemtcp) {
+    if (setsockopt(sock, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint)) && enablemtcp)
 #else
-   if(enablemtcp) {
+        if(enablemtcp)
 #endif
-       perror ("Setting mptcp on socket");
-       out << "Error enabling Multipath TCP!" << std::endl;
-       exit(32);
-   }
+        {
+            perror ("Setting mptcp on socket");
+            out << "Error enabling Multipath TCP!" << std::endl;
+            exit(32);
+        }
 
-    
+
     /* Construct the server address structure */
     memset(&servAddr, 0, sizeof(servAddr));         /* Zero out structure */
     servAddr.sin_family      = AF_INET;             /* Internet address family */
@@ -117,9 +118,9 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
     src.sin_family      = AF_INET;              /* Internet address family */
     src.sin_addr.s_addr = inet_addr(f.fromIP.c_str());     /* client IP address */
     src.sin_port        = htons(0);             /* client port */
-    
-    
-    
+
+
+
     //bind socket to src ip:
     if (bind(sock, (struct sockaddr*)&src, sizeof src) != 0) {
         char buf[200];
@@ -127,9 +128,9 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
         perror(buf);
         return -2;
     }
-    
+
     ssize_t sentBytes = 0;
-    
+
     /* Establish the connection to the echo server */
     if (connect(sock, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
         char buf[200];
@@ -142,53 +143,53 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
     /* PARTICIPATORY: inform the controller of this flow
      if flow is larger than given value, we send a UDP datagram to IP 10.255.255.254
      containing all information of the flow; the server will use this information for traffic engineering
-    */
-	if((participatory > 0) && (f.bytes >= participatory)) {
+     */
+    if((participatory > 0) && (f.bytes >= participatory)) {
         informAboutElephant(f, &src, &servAddr, sock);
-	}
+    }
 
-    
+
     typedef std::chrono::high_resolution_clock Clock;
-    
+
     /* Send the data to the server */
 
     {
         void * sendData = dummyData;
-    
+
         while(sentBytes < f.bytes - 1 and *has_received_signal == false) {
-		
+
             auto sendThisTime = (f.bytes-1) - sentBytes;
-		
+
             if(sendThisTime > BUFSIZE)
                 sendThisTime = BUFSIZE;
-	
-		
+
+
             ssize_t sent = send (sock, sendData, sendThisTime, 0);
-		
+
             if (sent <= 0) {
                 perror ("error while sending");
                 goto finished;
             }
-		
+
             sentBytes += sent;
 
         }
-		
-		//this is the last message. Contains a one to mark the transmission as beeing completed.
-		char* ones = (char*)malloc(sizeof(char));
-		ones[0] = '1';
+
+        //this is the last message. Contains a one to mark the transmission as beeing completed.
+        char* ones = (char*)malloc(sizeof(char));
+        ones[0] = '1';
         ssize_t sent = send(sock, (void*) ones, sizeof(char), 0);
-		free(ones);
-		if (sent <= 0) {
-			perror ("error while sending '1' Byte");
-			goto finished;
-		}
-		sentBytes+=1;
-		
-		
+        free(ones);
+        if (sent <= 0) {
+            perror ("error while sending '1' Byte");
+            goto finished;
+        }
+        sentBytes+=1;
+
+
     }
 
-	{
+    {
         //wait for the connection to be closed by the remote peer.
         char* recBuffer = (char*)malloc(BUFSIZE);
         recv(sock, recBuffer, BUFSIZE, 0);
@@ -196,37 +197,39 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
     }
 
     //### GOTO: finished
-    finished:
+finished:
     t1 = Clock::now();
 
     std::chrono::system_clock sysclock;
     auto tnow =sysclock.now();
 
     close(sock);
-    
 
-    
+
+
     diff = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0);
-    
+
     float ms =diff.count() / 1000.0;
 
-    
+
     int rate = (sentBytes / (ms / 1000.0) / 1000.0) * 8.0;
-    
+
     stdOutMutex.lock();
     char mbstr[100];
 
     auto ctime = std::chrono::system_clock::to_time_t(tnow);
     if (!std::strftime(mbstr, sizeof(mbstr), "%c %Z ", std::localtime(&ctime)))
         std::cerr << "Failed to call strftime?" << std::endl;
-		
-	auto marker = " finished";
-	if(*has_received_signal == true)
-		marker = " aborted";
+
+    auto marker = " finished";
+    if (sentBytes < f.bytes)
+        marker = " partial";
+    if(*has_received_signal == true)
+        marker = " aborted";
 
     auto endms = startms + (diff.count()/1000);
     out << startms << " " <<  endms << " " << sentBytes << " of " << f.bytes << " bytes in " << ms << " ms " << rate
-        << " kbit/s from "  << f.fromIP << " to " << f.toIP << marker << " #" << f.number << std::endl;
+    << " kbit/s from "  << f.fromIP << " to " << f.toIP << marker << " #" << f.number << std::endl;
 
     out.flush();
     stdOutMutex.unlock();
@@ -234,10 +237,10 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
     if(f.bytes - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
         sendData(f, startms, out, enablemtcp, participatory, retries-1, has_received_signal, running_mutex, running_threads);
     }
-		
-	pthread_mutex_lock(running_mutex);
-	*running_threads = *running_threads - 1;
-	pthread_mutex_unlock(running_mutex);
+
+    pthread_mutex_lock(running_mutex);
+    *running_threads = *running_threads - 1;
+    pthread_mutex_unlock(running_mutex);
 
     return (f.bytes - sentBytes);
 }
@@ -251,17 +254,17 @@ void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockadd
 
     //get local ip and port:
     if(getsockname(sock, (struct sockaddr*) src, &len) < 0) {
-       perror("getsockname");
+        perror("getsockname");
     } else {
 
-       fi.portSrc = src->sin_port;       //in network byte order
-       fi.portDst = servAddr->sin_port;  //in network byte order
-       fi.flowSize = htonl(f.bytes);
+        fi.portSrc = src->sin_port;       //in network byte order
+        fi.portDst = servAddr->sin_port;  //in network byte order
+        fi.flowSize = htonl(f.bytes);
 
-		
-		
-       strncpy(fi.ipSrc, f.fromIP.c_str(), 16);
-       strncpy(fi.ipDst, f.toIP.c_str(), 16);
+
+
+        strncpy(fi.ipSrc, f.fromIP.c_str(), 16);
+        strncpy(fi.ipDst, f.toIP.c_str(), 16);
     }
 
 
