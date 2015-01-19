@@ -16,9 +16,10 @@ struct flow {
     int fromId;
     int toId;
     long long start; //start in ms.
-    double bytes;
+    ssize_t bytes;
     std::string fromIP;
     std::string toIP;
+    int number;
     
     void fromString(std::string line, std::string ipBase, int numServersPerRack, double scaleFactorSize, double scaleFactorTime) {
         //style= 1, 4, 40.06287, 11045.23 (from, to, time, bytes)
@@ -30,13 +31,23 @@ struct flow {
         int i = 0;
         for (tokenizer::iterator tok_iter = tokens.begin(); tok_iter != tokens.end(); ++tok_iter) {
             std::string v = *tok_iter;
-            
+
             if(i == 0) fromId = stoi(v);
             if(i == 1) toId = stoi(v);
             if(i == 2) start = (long long)((stod(v) * scaleFactorTime * 1000.0));
-            if(i == 3) bytes = stod(v);
+            if(i == 3) {
+                double flowBytes = stod(v);
 
-            bytes *= scaleFactorSize;
+                flowBytes *= scaleFactorSize;
+
+                // WATT?!
+                if(flowBytes < 1)
+                    flowBytes = flowBytes*2;
+                
+                bytes = flowBytes;
+            }
+
+
             
             i++;
         }

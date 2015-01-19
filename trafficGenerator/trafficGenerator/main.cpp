@@ -101,7 +101,7 @@ int main (int argc, const char * argv[])
     ("participatorySleep", po::value<int>(&participatorySleep)->default_value(0), "Wait some time (in ms) before announcing flows")
     ("mptcp", po::value<bool>(&enablemtcp)->default_value(false), "Enable MPTCP per socket option")
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
-    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this")
+    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this [ms]")
     ;
 
     boost::program_options::positional_options_description pd;
@@ -158,15 +158,11 @@ int main (int argc, const char * argv[])
             if(debug)
                 out << "flow from " << f.fromIP << " to " << f.toIP  << std::endl;
 
-            if (cutofftime > 0 && cutofftime * scaleFactorTime > f.start )
+            if (cutofftime > 0 && f.start > (cutofftime * scaleFactorTime) )
                 // Ignore the flow
                 continue;
-
-            // WATT?!
-            if(f.bytes < 1)
-                f.bytes = f.bytes*2;
             
-            if(f.bytes > 1) {
+            if(f.bytes >= 1) {
                 flows.push_back(f);
                 numFlows++;
             }
@@ -177,10 +173,14 @@ int main (int argc, const char * argv[])
 	infile.close();
     out  << std::endl;
     
-    out << "read " << numFlows << " flows. Using " << flows.size() << " flows" << std::endl;
+    out << "read " << numFlows << " flows. Using " << flows.size() << " flows (cutoff " << cutofftime << ")" << std::endl;
     
     //sort by time:
     std::sort(flows.begin(), flows.end(), compairFlow);
+    int i=0;
+    for (auto & f: flows){
+        f.number=i++;
+    }
     
    //debug
 	if(debug) {
@@ -237,9 +237,8 @@ int main (int argc, const char * argv[])
 		running_threads++;
 		pthread_mutex_unlock(&running_mutex);
 		
-		std::thread newthread(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
-				   diff.count(), std::ref(out), enablemtcp, participatory, participatorySleep, 3, &has_received_signal, &running_mutex, &running_threads);
-		newthread.detach();
+		std::thread runner(sendData, f, diff.count(), std::ref(out), enablemtcp, participatory, participatorySleep, 3, &has_received_signal, &running_mutex, &running_threads);
+        runner.detach();
 
     }
 	
@@ -252,6 +251,9 @@ int main (int argc, const char * argv[])
 		pthread_mutex_unlock(&running_mutex);
 		sleep(1);
 	}
+
+    out << "All threads finished" << std::endl;
+    out.flush();
 	
 	
     return 0;
