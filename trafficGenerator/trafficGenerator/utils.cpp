@@ -73,7 +73,7 @@ bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, const long startms, std::ostream & out,
-             const bool enablemtcp, const int participatory, const int retries, volatile bool* has_received_signal,
+             const bool enablemtcp, const int participatory, const int participatorySleep, const int retries, volatile bool* has_received_signal,
 			 pthread_mutex_t* running_mutex, volatile int* running_threads) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
@@ -144,7 +144,8 @@ ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, cons
      containing all information of the flow; the server will use this information for traffic engineering
     */
 	if((participatory > 0) && (byteCount >= participatory)) {
-        informAboutElephant(byteCount, srcIp, dstIp, &src, &servAddr, sock);
+		std::thread newthread(&informAboutElephant, byteCount, srcIp, dstIp, &src, &servAddr, sock, participatorySleep);
+		newthread.detach();
 	}
 
     
@@ -232,7 +233,7 @@ ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, cons
     stdOutMutex.unlock();
 
     if(byteCount - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
-        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, participatory, retries-1, has_received_signal, running_mutex, running_threads);
+        sendData(srcIp, dstIp, byteCount, startms, out, enablemtcp, participatory, participatorySleep, retries-1, has_received_signal, running_mutex, running_threads);
     }
 		
 	pthread_mutex_lock(running_mutex);
@@ -244,7 +245,10 @@ ssize_t sendData(const char* srcIp, const char* dstIp, const int byteCount, cons
 
 
 
-void informAboutElephant(const int byteCount, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock) {
+void informAboutElephant(const int byteCount, const char* srcIp, const char* dstIp, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock, int elephantSleep) {
+	
+	
+	
     struct flowIdent fi;
 
     socklen_t len = sizeof(struct sockaddr);
@@ -265,6 +269,8 @@ void informAboutElephant(const int byteCount, const char* srcIp, const char* dst
     }
 
 
+	std::this_thread::sleep_for(std::chrono::milliseconds(elephantSleep));
+	
     //send udp datagram:
 
     const char* hostname="10.255.255.254";

@@ -80,6 +80,7 @@ int main (int argc, const char * argv[])
     double scaleFactorTime;
 
 	int participatory;
+	int participatorySleep;
 
     bool enablemtcp;
     long cutofftime;
@@ -97,13 +98,14 @@ int main (int argc, const char * argv[])
     ("scaleFactorSize", po::value<double>(&scaleFactorSize)->required(), "Multiply each flow size by this factor")
     ("scaleFactorTime", po::value<double>(&scaleFactorTime)->required(), "Timedillation factor, larger is slower")
     ("participatory", po::value<int>(&participatory)->default_value(0), "Announce flows larger than this")
+    ("participatorySleep", po::value<int>(&participatorySleep)->default_value(0), "Wait some time (in ms) before announcing flows")
     ("mptcp", po::value<bool>(&enablemtcp)->default_value(false), "Enable MPTCP per socket option")
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
     ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this")
     ;
 
     boost::program_options::positional_options_description pd;
-    for (const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "participatory"}) {
+    for (const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "participatory", "participatorySleep"}) {
         pd.add (arg, 1);
     }
 
@@ -235,9 +237,9 @@ int main (int argc, const char * argv[])
 		running_threads++;
 		pthread_mutex_unlock(&running_mutex);
 		
-		new std::thread(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
-				   diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal, &running_mutex, &running_threads);
-		
+		std::thread newthread(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
+				   diff.count(), std::ref(out), enablemtcp, participatory, participatorySleep, 3, &has_received_signal, &running_mutex, &running_threads);
+		newthread.detach();
 
     }
 	
