@@ -112,8 +112,8 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out, const tra
 #ifndef MPTCP_ENABLED
 #define MPTCP_ENABLED          26
 #endif
-    int enablemtcpint = enablemtcp;
-    if (setsockopt(sock, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint)) && enablemtcp)
+    int enablemtcpint = tgConf.enablemtcp;
+    if (setsockopt(sock, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint)) && tgConf.enablemtcp)
 #else
         if(tgConf.enablemtcp)
 #endif
