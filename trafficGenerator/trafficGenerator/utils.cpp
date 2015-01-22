@@ -28,6 +28,7 @@
 #include <chrono>
 #include <iostream>
 #include <netdb.h>
+#include <cstdlib>
 
 
 extern int	errno;
@@ -73,7 +74,7 @@ bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 ssize_t sendData(const flow f, const long startms, std::ostream & out,
-                 const bool enablemtcp, const int participatory, const int participatorySleep, const int retries, volatile bool* has_received_signal,
+                 const bool enablemtcp, const int participatory, const int participatorySleep, const double falsePositives, const int retries, volatile bool* has_received_signal,
                  pthread_mutex_t* running_mutex, volatile int* running_threads) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
@@ -144,11 +145,28 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
      if flow is larger than given value, we send a UDP datagram to IP 10.255.255.254
      containing all information of the flow; the server will use this information for traffic engineering
      */
+	{
+		//false positives: coin toss
+		bool falsePositive = false;
+		int coin = rand();
+		double w = coin / double(RAND_MAX);
+		if(w <= falsePositives) {
+			//this is going to be a false positive
+			falsePositive = true;
+		}
+		
+		if(((participatory > 0) && (f.bytes >= participatory)) || falsePositive) {
+			if(participatorySleep == 0) {
+				//mein OpenFlow controller hat scheinbar ein Problem, wenn der Flow instantan gemeldet wird. da geht dann ein SYN ack oder so verloren; daher warten wir ein ganz bisschen (10 ms)
+				std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, 10);
+				newthread.detach();
+			} else {
+				std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, participatorySleep);
+				newthread.detach();
+			}
+		}
 	
-    if((participatory > 0) && (f.bytes >= participatory)) {
-        std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, participatorySleep);
-		newthread.detach();
-    }
+	}
 
     typedef std::chrono::high_resolution_clock Clock;
 
@@ -236,7 +254,7 @@ finished:
     stdOutMutex.unlock();
 
     if(f.bytes - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
-        sendData(f, startms, out, enablemtcp, participatory, participatorySleep, retries-1, has_received_signal, running_mutex, running_threads);
+        sendData(f, startms, out, enablemtcp, participatory, participatorySleep, falsePositives, retries-1, has_received_signal, running_mutex, running_threads);
     }
 
     pthread_mutex_lock(running_mutex);
@@ -268,8 +286,9 @@ void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockadd
         strncpy(fi.ipDst, f.toIP.c_str(), 16);
     }
 
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(elephantSleep));
+	if(elephantSleep > 1) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(elephantSleep));
+	}
 	
     //send udp datagram:
 

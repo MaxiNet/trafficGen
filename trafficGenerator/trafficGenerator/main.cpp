@@ -81,6 +81,8 @@ int main (int argc, const char * argv[])
 
 	int participatory;
 	int participatorySleep;
+	
+	double falsePositives;
 
     bool enablemtcp;
     long cutofftime;
@@ -99,13 +101,15 @@ int main (int argc, const char * argv[])
     ("scaleFactorTime", po::value<double>(&scaleFactorTime)->required(), "Timedillation factor, larger is slower")
     ("participatory", po::value<int>(&participatory)->default_value(0), "Announce flows larger than this")
     ("participatorySleep", po::value<int>(&participatorySleep)->default_value(0), "Wait some time (in ms) before announcing flows")
+	("falsePositives", po::value<double>(&falsePositives)->default_value(0.0), "False Positives: Factor of mice falsely reported as elephants")
     ("mptcp", po::value<bool>(&enablemtcp)->default_value(false), "Enable MPTCP per socket option")
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
     ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this [ms]")
     ;
 
     boost::program_options::positional_options_description pd;
-    for (const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize", "scaleFactorTime", "participatory", "participatorySleep"}) {
+    for(const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize",
+		"scaleFactorTime", "participatory", "participatorySleep"}) {
         pd.add (arg, 1);
     }
 
@@ -237,7 +241,7 @@ int main (int argc, const char * argv[])
 		running_threads++;
 		pthread_mutex_unlock(&running_mutex);
 		
-		std::thread runner(sendData, f, diff.count(), std::ref(out), enablemtcp, participatory, participatorySleep, 3, &has_received_signal, &running_mutex, &running_threads);
+		std::thread runner(sendData, f, diff.count(), std::ref(out), enablemtcp, participatory, participatorySleep, falsePositives, 3, &has_received_signal, &running_mutex, &running_threads);
         runner.detach();
 
     }
