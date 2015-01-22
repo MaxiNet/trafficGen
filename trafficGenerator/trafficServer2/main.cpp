@@ -93,8 +93,8 @@ int main(int argc, const char * argv[]) {
     try
     {
         boost::asio::io_service io_service;
-        traffgen_server server_leet(io_service, 31337);
-        traffgen_server server_moreleet(io_service, 31338);
+        traffgen_server server_leet(io_service, 13373);
+        traffgen_server server_moreleet(io_service, 13378);
         io_service.run();
     }
     catch (std::exception& e)
