@@ -27,6 +27,14 @@ struct flowIdent {
     uint32_t flowSize;       //36-40
 };
 
+struct trafficGenConfig {
+    bool participatoryIsDifferentPort;
+    int participatory;
+    int participatorySleep;
+    double falsePositives;
+    bool enablemtcp;
+};
+
 int getRackId(int serverId, int numServersPerRack);
 std::string getIp(int serverId, int numServersPerRack, std::string ipBase);
 bool compairFlow (struct flow i,struct flow j);
@@ -34,7 +42,7 @@ bool compairFlow (struct flow i,struct flow j);
 
 void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock, int elephantSleep);
 
-ssize_t sendData(const flow f, const long startms, std::ostream& out, const bool enablemtcp, const int participatory, const int participatorySleep, const double falsePositives, const int retries, volatile bool* has_received_signal, pthread_mutex_t* running_mutex, volatile int* running_threads);
+ssize_t sendData(const flow f, const long startms, std::ostream& out, const trafficGenConfig & tgConf, const int retries, volatile bool* has_received_signal, pthread_mutex_t* running_mutex, volatile int* running_threads);
 
 
 int diff_ms(timeval t1, timeval t2);

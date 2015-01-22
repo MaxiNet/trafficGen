@@ -13,6 +13,10 @@ fi
 cd $srcDir/trafficGeneratorServer/trafficGeneratorServer/trafficGeneratorServer
 $CXX -std=gnu++11 -Wall  -g -pthread -o server main.cpp -I /usr/local/Cellar/boost/1.56.0/include
 
+OSXLIBS="-I /usr/local/Cellar/boost/1.56.0/include -L/usr/local/Cellar/boost/1.56.0/lib"
 
 cd $srcDir/trafficGenerator/trafficGenerator
-$CXX -pthread -g -Wall -std=gnu++11 -I../../threadpool/boost/ main.cpp utils.cpp -lboost_program_options -lboost_system -o traffGen -I /usr/local/Cellar/boost/1.56.0/include -L/usr/local/Cellar/boost/1.56.0/lib
+$CXX -pthread -g -Wall -std=gnu++11  main.cpp utils.cpp -lboost_program_options -lboost_system -o traffGen $OSXLIBS
+
+cd $srcDir/trafficGenerator/trafficServer2
+$CXX -pthread -g -Wall -std=gnu++11  main.cpp -lboost_program_options -lboost_system -o traffGen $OSXLIBS

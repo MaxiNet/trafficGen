@@ -15,7 +15,6 @@
 #include <boost/ptr_container/ptr_list.hpp>
 #include "flow.h"
 #include "utils.h"
-#include "threadpool.hpp"
 #include <chrono>
 #include <thread>
 #include <mutex>
@@ -79,15 +78,11 @@ int main (int argc, const char * argv[])
     
     double scaleFactorTime;
 
-	int participatory;
-	int participatorySleep;
-	
-	double falsePositives;
 
-    bool enablemtcp;
     long cutofftime;
     typedef std::chrono::high_resolution_clock Clock;
 
+    trafficGenConfig tgConf;
 
     // Declare the supported options.
     po::options_description desc("Allowed options");
@@ -99,10 +94,11 @@ int main (int argc, const char * argv[])
     ("flowFile", po::value<std::string>(&flowFile)->required(), "flowfile to read at startup")
     ("scaleFactorSize", po::value<double>(&scaleFactorSize)->required(), "Multiply each flow size by this factor")
     ("scaleFactorTime", po::value<double>(&scaleFactorTime)->required(), "Timedillation factor, larger is slower")
-    ("participatory", po::value<int>(&participatory)->default_value(0), "Announce flows larger than this")
-    ("participatorySleep", po::value<int>(&participatorySleep)->default_value(0), "Wait some time (in ms) before announcing flows")
-	("falsePositives", po::value<double>(&falsePositives)->default_value(0.0), "False Positives: Factor of mice falsely reported as elephants")
-    ("mptcp", po::value<bool>(&enablemtcp)->default_value(false), "Enable MPTCP per socket option")
+    ("participatory", po::value<int>(&tgConf.participatory)->default_value(0), "Announce flows larger than this")
+    ("participatorySleep", po::value<int>(&tgConf.participatorySleep)->default_value(0), "Wait some time (in ms) before announcing flows")
+	("falsePositives", po::value<double>(&tgConf.falsePositives)->default_value(0.0), "False Positives: Factor of mice falsely reported as elephants")
+    ("mptcp", po::value<bool>(&tgConf.enablemtcp)->default_value(false), "Enable MPTCP per socket option")
+    ("participartoyDiffPort", po::value<bool>(&tgConf.participatoryIsDifferentPort)->default_value(false), "Use different port to announce elepehants")
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
     ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this [ms]")
     ;
@@ -241,7 +237,7 @@ int main (int argc, const char * argv[])
 		running_threads++;
 		pthread_mutex_unlock(&running_mutex);
 		
-		std::thread runner(sendData, f, diff.count(), std::ref(out), enablemtcp, participatory, participatorySleep, falsePositives, 3, &has_received_signal, &running_mutex, &running_threads);
+        std::thread runner(sendData, f, diff.count(), std::ref(out), std::ref(tgConf), 3, &has_received_signal, &running_mutex, &running_threads);
         runner.detach();
 
     }

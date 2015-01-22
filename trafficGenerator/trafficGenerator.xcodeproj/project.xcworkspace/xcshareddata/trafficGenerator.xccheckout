@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>E9EAFF78-B29A-4FEF-976D-79FAD084062F</string>
+	<key>IDESourceControlProjectName</key>
+	<string>trafficGenerator</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>876D8A07B55AF64118520506CBE324F41E89DEBF</key>
+		<string>https://git.blinkt.de/trafficGen</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>trafficGenerator/trafficGenerator.xcodeproj</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>876D8A07B55AF64118520506CBE324F41E89DEBF</key>
+		<string>../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>https://git.blinkt.de/trafficGen</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>111</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>876D8A07B55AF64118520506CBE324F41E89DEBF</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>876D8A07B55AF64118520506CBE324F41E89DEBF</string>
+			<key>IDESourceControlWCCName</key>
+			<string>trafficGen</string>
+		</dict>
+	</array>
+</dict>
+</plist>

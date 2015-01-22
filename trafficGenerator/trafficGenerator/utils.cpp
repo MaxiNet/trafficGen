@@ -70,11 +70,27 @@ std::string getIp(int serverId, int numServersPerRack, std::string ipBase) {
 bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
+static bool doParticipatory(const trafficGenConfig& tgConf, const flow & f)
+{
+
+    //false positives: coin toss
+    bool falsePositive = false;
+    int coin = rand();
+    double w = coin / double(RAND_MAX);
+    if(w <= tgConf.falsePositives) {
+        //this is going to be a false positive
+        falsePositive = true;
+    }
+
+    if(((tgConf.participatory > 0) && (f.bytes >= tgConf.participatory)) || falsePositive)
+        return true;
+    else
+        return false;
+
+}
 
 
-
-ssize_t sendData(const flow f, const long startms, std::ostream & out,
-                 const bool enablemtcp, const int participatory, const int participatorySleep, const double falsePositives, const int retries, volatile bool* has_received_signal,
+ssize_t sendData(const flow f, const long startms, std::ostream & out, const trafficGenConfig & tgConf, const int retries, volatile bool* has_received_signal,
                  pthread_mutex_t* running_mutex, volatile int* running_threads) {
     int sock;
     struct sockaddr_in servAddr; /* server address */
@@ -99,7 +115,7 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
     int enablemtcpint = enablemtcp;
     if (setsockopt(sock, SOL_TCP, MPTCP_ENABLED, &enablemtcpint, sizeof(enablemtcpint)) && enablemtcp)
 #else
-        if(enablemtcp)
+        if(tgConf.enablemtcp)
 #endif
         {
             perror ("Setting mptcp on socket");
@@ -121,6 +137,10 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
     src.sin_port        = htons(0);             /* client port */
 
 
+    if (tgConf.participatoryIsDifferentPort && doParticipatory(tgConf, f))
+    {
+        servAddr.sin_port=htons(13378);
+    }
 
     //bind socket to src ip:
     if (bind(sock, (struct sockaddr*)&src, sizeof src) != 0) {
@@ -140,33 +160,20 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out,
         goto finished;
     }
 
-
     /* PARTICIPATORY: inform the controller of this flow
      if flow is larger than given value, we send a UDP datagram to IP 10.255.255.254
      containing all information of the flow; the server will use this information for traffic engineering
      */
-	{
-		//false positives: coin toss
-		bool falsePositive = false;
-		int coin = rand();
-		double w = coin / double(RAND_MAX);
-		if(w <= falsePositives) {
-			//this is going to be a false positive
-			falsePositive = true;
-		}
-		
-		if(((participatory > 0) && (f.bytes >= participatory)) || falsePositive) {
-			if(participatorySleep == 0) {
-				//mein OpenFlow controller hat scheinbar ein Problem, wenn der Flow instantan gemeldet wird. da geht dann ein SYN ack oder so verloren; daher warten wir ein ganz bisschen (10 ms)
-				std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, 10);
-				newthread.detach();
-			} else {
-				std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, participatorySleep);
-				newthread.detach();
-			}
-		}
-	
-	}
+    if ( !tgConf.participatoryIsDifferentPort && doParticipatory(tgConf, f)) {
+        if(tgConf.participatorySleep == 0) {
+            //mein OpenFlow controller hat scheinbar ein Problem, wenn der Flow instantan gemeldet wird. da geht dann ein SYN ack oder so verloren; daher warten wir ein ganz bisschen (10 ms)
+            std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, 10);
+            newthread.detach();
+        } else {
+            std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, tgConf.participatorySleep);
+            newthread.detach();
+        }
+    }
 
     typedef std::chrono::high_resolution_clock Clock;
 
@@ -254,7 +261,7 @@ finished:
     stdOutMutex.unlock();
 
     if(f.bytes - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
-        sendData(f, startms, out, enablemtcp, participatory, participatorySleep, falsePositives, retries-1, has_received_signal, running_mutex, running_threads);
+        sendData(f, startms, out, tgConf, retries-1, has_received_signal, running_mutex, running_threads);
     }
 
     pthread_mutex_lock(running_mutex);
