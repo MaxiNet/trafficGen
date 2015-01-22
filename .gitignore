@@ -4,3 +4,5 @@ server
 trafficGeneratorServer/trafficGeneratorServer/trafficGeneratorServer.xcodeproj/xcuserdata
 trafficGenerator/.idea
 trafficGenerator/trafficGenerator.xcodeproj/xcuserdata/arne.xcuserdatad
+trafficGenerator/trafficGenerator/traffGen.dSYM
+trafficGenerator/trafficServer2/traffGen.dSYM

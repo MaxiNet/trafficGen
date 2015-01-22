@@ -19,4 +19,4 @@ cd $srcDir/trafficGenerator/trafficGenerator
 $CXX -pthread -g -Wall -std=gnu++11  main.cpp utils.cpp -lboost_program_options -lboost_system -o traffGen $OSXLIBS
 
 cd $srcDir/trafficGenerator/trafficServer2
-$CXX -pthread -g -Wall -std=gnu++11  main.cpp -lboost_program_options -lboost_system -o traffGen $OSXLIBS
+$CXX -pthread -g -Wall -std=gnu++11  main.cpp -lboost_program_options -lboost_system -o trafficServer2 $OSXLIBS
