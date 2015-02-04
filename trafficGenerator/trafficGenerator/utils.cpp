@@ -165,14 +165,10 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out, const tra
      containing all information of the flow; the server will use this information for traffic engineering
      */
     if ( !tgConf.participatoryIsDifferentPort && doParticipatory(tgConf, f)) {
-        if(tgConf.participatorySleep == 0) {
             //mein OpenFlow controller hat scheinbar ein Problem, wenn der Flow instantan gemeldet wird. da geht dann ein SYN ack oder so verloren; daher warten wir ein ganz bisschen (10 ms)
-            std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, 10);
+            int sleepTime = tgConf.participatorySleep == 0 ? 10 : tgConf.participatorySleep;
+            std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, sleepTime);
             newthread.detach();
-        } else {
-            std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, tgConf.participatorySleep);
-            newthread.detach();
-        }
     }
 
     typedef std::chrono::high_resolution_clock Clock;

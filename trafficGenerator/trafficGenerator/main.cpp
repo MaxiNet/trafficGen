@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <boost/program_options.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 namespace po = boost::program_options;
 
@@ -56,16 +57,94 @@ void gogogo(int sig) {
 }
 
 
+static void mainLoop(std::ostream & out, const struct std::vector<flow> flows, const trafficGenConfig & tgConf )
+{
+    out << "start scheduling flows..."  << std::endl;
+
+    typedef std::chrono::high_resolution_clock Clock;
+    typedef std::chrono::milliseconds milliseconds;
+
+    Clock::time_point t0 = Clock::now();
+
+    volatile int running_threads = 0;
+    pthread_mutex_t running_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    for (struct flow f:flows) {
+        Clock::time_point  t1 = Clock::now();
+        auto diff = std::chrono::duration_cast<milliseconds>(t1 - t0);
+
+        //cout << "flow should start at " << f.start << " diff " << diff.count() << "\n";
+
+        if(diff.count() >= f.start) {
+            //std::cout << diff.count() << ">=" << f.start << "\n";
+            //we have to start this flow!
+        } else {
+            //cout << "sleeping for " << f.start - diff.count() << "\n";
+            //we should wait for the flow to begin...
+            std::this_thread::sleep_for(milliseconds(f.start - diff.count()));
+        }
+        //execute flow:
+
+        // tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
+        //                      diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal)
+        //            );
+
+        pthread_mutex_lock(&running_mutex);
+        running_threads++;
+        pthread_mutex_unlock(&running_mutex);
+
+        std::thread runner(sendData, f, diff.count(), std::ref(out), std::ref(tgConf), 3, &has_received_signal, &running_mutex, &running_threads);
+        runner.detach();
+
+    }
+
+    pthread_mutex_lock(&running_mutex);
+    int n = running_threads;
+    pthread_mutex_unlock(&running_mutex);
+    while(n > 0) {
+        pthread_mutex_lock(&running_mutex);
+        n = running_threads;
+        pthread_mutex_unlock(&running_mutex);
+        sleep(1);
+    }
+
+    out << "All threads finished" << std::endl;
+    out.flush();
+    
+}
+
+static void readConfigFile(const std::string & config_file, po::variables_map & vm, const po::options_description  & allcfgopts)
+{
+    if ( config_file != "") {
+        std::cout << "Using configuration file " << config_file << std::endl;
+        std::ifstream ifs(config_file.c_str());
+        if (!ifs)
+        {
+            std::cerr << "can not open config file: " << config_file << "\n";
+            return;
+        }
+
+        try {
+            store(po::parse_config_file(ifs, allcfgopts), vm);
+        } catch (boost::exception & be) {
+            std::cerr << "Error parsing config file "<< config_file << std::endl;
+            std::cerr << boost::diagnostic_information(be) << std::endl;
+            return;
+        }
+
+        po::notify(vm);
+    }
+
+}
+
+
+static std::function<void(int)> sighuphandler;
+
 int main (int argc, const char * argv[])
 {
 
 	(void) signal(SIGUSR1, setFlag);
 	(void) signal(SIGUSR2, gogogo);
-	
-
-
-
-
 
     int hostsPerRack;
     std::string ipBase;
@@ -78,11 +157,21 @@ int main (int argc, const char * argv[])
     
     double scaleFactorTime;
 
+    bool doLoop;
+
 
     long cutofftime;
     typedef std::chrono::high_resolution_clock Clock;
 
     trafficGenConfig tgConf;
+    std::string config_file;
+
+
+    po::options_description cmdonly("Command line only");
+
+    cmdonly.add_options()
+    ("config,C", po::value<std::string>(&config_file)->default_value(""),"a configuration file");
+
 
     // Declare the supported options.
     po::options_description desc("Allowed options");
@@ -101,6 +190,7 @@ int main (int argc, const char * argv[])
     ("participartoyDiffPort", po::value<bool>(&tgConf.participatoryIsDifferentPort)->default_value(false), "Use different port to announce elepehants")
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
     ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this [ms]")
+    ("loop", po::value<bool>(&doLoop)->default_value(false), "Loop over the traffic file.")
     ;
 
     boost::program_options::positional_options_description pd;
@@ -109,9 +199,28 @@ int main (int argc, const char * argv[])
         pd.add (arg, 1);
     }
 
+    po::options_description allcmdopts;
+    po::options_description allcfgopts;
+
+    allcmdopts.add(desc);
+    allcmdopts.add(cmdonly);
+
+    allcfgopts.add(desc);
+
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
     po::notify(vm);
+
+
+    readConfigFile(config_file, vm, allcfgopts);
+
+
+
+    sighuphandler = std::bind (readConfigFile, config_file, std::ref(vm), std::ref(allcfgopts));
+    signal(SIGHUP, [](int signum) { sighuphandler(signum); });
+    
+
+
 
     //read flows from file - only hold the ones we really want to have:
     std::ifstream infile;
@@ -200,61 +309,11 @@ int main (int argc, const char * argv[])
     
     //tp->schedule(boost::bind(task_with_parameter, 42));
     
-    
-    out << "start scheduling flows..."  << std::endl;
-    
-    typedef std::chrono::high_resolution_clock Clock;
-    typedef std::chrono::milliseconds milliseconds;
-    
-    Clock::time_point t0 = Clock::now();
-    Clock::time_point t1;
-    milliseconds diff;
-	
-	volatile int running_threads = 0;
-	pthread_mutex_t running_mutex = PTHREAD_MUTEX_INITIALIZER;
-    
-    for (struct flow f:flows) {
-        t1 = Clock::now();
-        diff = std::chrono::duration_cast<milliseconds>(t1 - t0);
-        
-        //cout << "flow should start at " << f.start << " diff " << diff.count() << "\n";
-        
-        if(diff.count() >= f.start) {
-            //std::cout << diff.count() << ">=" << f.start << "\n";
-            //we have to start this flow!
-        } else {
-            //cout << "sleeping for " << f.start - diff.count() << "\n";
-            //we should wait for the flow to begin...
-            std::this_thread::sleep_for(milliseconds(f.start - diff.count()));
-        }
-        //execute flow:
+    do {
+        mainLoop(out, flows, tgConf);
+    } while (doLoop);
 
-        // tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
-        //                      diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal)
-        //            );
-		
-		pthread_mutex_lock(&running_mutex);
-		running_threads++;
-		pthread_mutex_unlock(&running_mutex);
-		
-        std::thread runner(sendData, f, diff.count(), std::ref(out), std::ref(tgConf), 3, &has_received_signal, &running_mutex, &running_threads);
-        runner.detach();
 
-    }
-	
-	pthread_mutex_lock(&running_mutex);
-	int n = running_threads;
-	pthread_mutex_unlock(&running_mutex);
-	while(n > 0) {
-		pthread_mutex_lock(&running_mutex);
-		n = running_threads;
-		pthread_mutex_unlock(&running_mutex);
-		sleep(1);
-	}
-
-    out << "All threads finished" << std::endl;
-    out.flush();
-	
 	
     return 0;
 }
