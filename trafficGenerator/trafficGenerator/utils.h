@@ -33,14 +33,15 @@ struct trafficGenConfig {
     int participatorySleep;
     double falsePositives;
     bool enablemtcp;
+	double scaleFactorSize;
 };
 
 int getRackId(int serverId, int numServersPerRack);
 std::string getIp(int serverId, int numServersPerRack, std::string ipBase);
-bool compairFlow (struct flow i,struct flow j);
+bool compareFlow (struct flow i,struct flow j);
 
 
-void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock, int elephantSleep);
+void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock, int elephantSleep, const trafficGenConfig& tgConf);
 
 ssize_t sendData(const flow f, const long startms, std::ostream& out, const trafficGenConfig & tgConf, const int retries, volatile bool* has_received_signal, pthread_mutex_t* running_mutex, volatile int* running_threads);
 

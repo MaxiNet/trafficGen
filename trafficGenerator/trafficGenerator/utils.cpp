@@ -67,7 +67,7 @@ std::string getIp(int serverId, int numServersPerRack, std::string ipBase) {
     return ipBase + "." + std::to_string(r) + "." + std::to_string(s);
 }
 
-bool compairFlow (struct flow i,struct flow j) { return (i.start<j.start); }
+bool compareFlow (struct flow i,struct flow j) { return (i.start<j.start); }
 
 
 static bool doParticipatory(const trafficGenConfig& tgConf, const flow & f)
@@ -82,7 +82,7 @@ static bool doParticipatory(const trafficGenConfig& tgConf, const flow & f)
         falsePositive = true;
     }
 
-    if(((tgConf.participatory > 0) && (f.bytes >= tgConf.participatory)) || falsePositive)
+    if(((tgConf.participatory > 0) && (f.getSize(tgConf) >= tgConf.participatory)) || falsePositive)
         return true;
     else
         return false;
@@ -167,20 +167,20 @@ ssize_t sendData(const flow f, const long startms, std::ostream & out, const tra
     if ( !tgConf.participatoryIsDifferentPort && doParticipatory(tgConf, f)) {
             //mein OpenFlow controller hat scheinbar ein Problem, wenn der Flow instantan gemeldet wird. da geht dann ein SYN ack oder so verloren; daher warten wir ein ganz bisschen (10 ms)
             int sleepTime = tgConf.participatorySleep == 0 ? 10 : tgConf.participatorySleep;
-            std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, sleepTime);
+            std::thread newthread(informAboutElephant, f, &src, &servAddr, sock, sleepTime, tgConf);
             newthread.detach();
     }
 
     typedef std::chrono::high_resolution_clock Clock;
 
     /* Send the data to the server */
-
+	
     {
         void * sendData = dummyData;
 
-        while(sentBytes < f.bytes - 1 and *has_received_signal == false) {
+        while(sentBytes < f.getSize(tgConf) - 1 and *has_received_signal == false) {
 
-            auto sendThisTime = (f.bytes-1) - sentBytes;
+            auto sendThisTime = (f.getSize(tgConf)-1) - sentBytes;
 
             if(sendThisTime > BUFSIZE)
                 sendThisTime = BUFSIZE;
@@ -244,19 +244,19 @@ finished:
         std::cerr << "Failed to call strftime?" << std::endl;
 
     auto marker = " finished";
-    if (sentBytes < f.bytes)
+    if (sentBytes < f.getSize(tgConf))
         marker = " partial";
     if(*has_received_signal == true)
         marker = " aborted";
 
     auto endms = startms + (diff.count()/1000);
-    out << startms << " " <<  endms << " " << sentBytes << " of " << f.bytes << " bytes in " << ms << " ms " << rate
+    out << startms << " " <<  endms << " " << sentBytes << " of " << f.getSize(tgConf) << " bytes in " << ms << " ms " << rate
     << " kbit/s from "  << f.fromIP << " to " << f.toIP << marker << " #" << f.number << std::endl;
 
     out.flush();
     stdOutMutex.unlock();
 
-    if(f.bytes - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
+    if(f.getSize(tgConf) - sentBytes > 0 && retries > 0 && *has_received_signal == false) {
         sendData(f, startms, out, tgConf, retries-1, has_received_signal, running_mutex, running_threads);
     }
 
@@ -264,12 +264,12 @@ finished:
     *running_threads = *running_threads - 1;
     pthread_mutex_unlock(running_mutex);
 
-    return (f.bytes - sentBytes);
+    return (f.getSize(tgConf) - sentBytes);
 }
 
 
 
-void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock, int elephantSleep) {
+void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockaddr_in* servAddr, int sock, int elephantSleep, const trafficGenConfig& tgConf) {
     struct flowIdent fi;
 
     socklen_t len = sizeof(struct sockaddr);
@@ -281,7 +281,7 @@ void informAboutElephant(const flow & f, struct sockaddr_in* src, struct sockadd
 
         fi.portSrc = src->sin_port;       //in network byte order
         fi.portDst = servAddr->sin_port;  //in network byte order
-        fi.flowSize = htonl(f.bytes);
+        fi.flowSize = htonl(f.getSize(tgConf));
 
 
 

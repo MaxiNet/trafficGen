@@ -83,12 +83,8 @@ static void mainLoop(std::ostream & out, const struct std::vector<flow> flows, c
             //we should wait for the flow to begin...
             std::this_thread::sleep_for(milliseconds(f.start - diff.count()));
         }
+		
         //execute flow:
-
-        // tp.schedule(std::bind(sendData, f.fromIP.c_str(), f.toIP.c_str(), (int)f.bytes,
-        //                      diff.count(), std::ref(out), enablemtcp, participatory, 3, &has_received_signal)
-        //            );
-
         pthread_mutex_lock(&running_mutex);
         running_threads++;
         pthread_mutex_unlock(&running_mutex);
@@ -152,8 +148,6 @@ int main (int argc, const char * argv[])
     int hostId;
 
     std::string flowFile;
-
-    double scaleFactorSize;
     
     double scaleFactorTime;
 
@@ -181,7 +175,7 @@ int main (int argc, const char * argv[])
     ("ipBase", po::value<std::string>(&ipBase)->required(), "prefix of all IPs, e.g. 10.0")
     ("hostId", po::value<int>(&hostId)->required(), "id of the own host (starts at 0?)")
     ("flowFile", po::value<std::string>(&flowFile)->required(), "flowfile to read at startup")
-    ("scaleFactorSize", po::value<double>(&scaleFactorSize)->required(), "Multiply each flow size by this factor")
+    ("scaleFactorSize", po::value<double>(&tgConf.scaleFactorSize)->required(), "Multiply each flow size by this factor")
     ("scaleFactorTime", po::value<double>(&scaleFactorTime)->required(), "Timedillation factor, larger is slower")
     ("participatory", po::value<int>(&tgConf.participatory)->default_value(0), "Announce flows larger than this [in bytes]")
     ("participatorySleep", po::value<int>(&tgConf.participatorySleep)->default_value(0), "Wait some time (in ms) before announcing flows")
@@ -262,7 +256,7 @@ int main (int argc, const char * argv[])
             
             //style= 1, 4, 40.06287, 11045.23 (from, to, time, bytes)
             struct flow f;
-            f.fromString(line, ipBase, hostsPerRack, scaleFactorSize, scaleFactorTime);
+            f.fromString(line, ipBase, hostsPerRack, scaleFactorTime);
 			
             if(debug)
                 out << "flow from " << f.fromIP << " to " << f.toIP  << std::endl;
@@ -285,7 +279,7 @@ int main (int argc, const char * argv[])
     out << "read " << numFlows << " flows. Using " << flows.size() << " flows (cutoff " << cutofftime << ")" << std::endl;
     
     //sort by time:
-    std::sort(flows.begin(), flows.end(), compairFlow);
+    std::sort(flows.begin(), flows.end(), compareFlow);
     int i=0;
     for (auto & f: flows){
         f.number=i++;
@@ -305,9 +299,6 @@ int main (int argc, const char * argv[])
 		sleep(1);
 	}
 	
-
-    
-    //tp->schedule(boost::bind(task_with_parameter, 42));
     
     do {
         mainLoop(out, flows, tgConf);
