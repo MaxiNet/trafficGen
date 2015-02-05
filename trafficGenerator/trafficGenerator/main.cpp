@@ -134,6 +134,8 @@ static void writeConfig (po::variables_map & vm, std::ostream & out) {
             root.put(i.first, i.second.as<unsigned long>());
         else if(i.second.value().type() == typeid(unsigned int))
             root.put(i.first, i.second.as<unsigned int>());
+        else if(i.second.value().type() == typeid(double))
+            root.put(i.first, i.second.as<double>());
         else
             std::cerr << "Unknown options type: " << i.second.value().type().name() << " " << i.first << std::endl;
     }
@@ -189,7 +191,7 @@ int main (int argc, const char * argv[])
 
     bool doLoop;
 
-    long cutofftime;
+    unsigned long cutofftime;
     typedef std::chrono::high_resolution_clock Clock;
 
     trafficGenConfig tgConf;
@@ -218,7 +220,7 @@ int main (int argc, const char * argv[])
     ("mptcp", po::value<bool>(&tgConf.enablemtcp)->default_value(false), "Enable MPTCP per socket option")
     ("participartoyDiffPort", po::value<bool>(&tgConf.participatoryIsDifferentPort)->default_value(false), "Use different port to announce elepehants")
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
-    ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this [ms]")
+    ("cutOffTime", po::value<unsigned long>(&cutofftime)->default_value(0), "Don't play flows newer than this [ms]")
     ("loop", po::value<bool>(&doLoop)->default_value(false), "Loop over the traffic file.")
     ("showConfig", po::value<bool>()->default_value(true), "Print out config for diagnostic")
     ;
