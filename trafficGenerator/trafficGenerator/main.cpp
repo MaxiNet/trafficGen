@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <boost/program_options.hpp>
 #include <boost/exception/diagnostic_information.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+
 
 namespace po = boost::program_options;
 
@@ -109,6 +111,37 @@ static void mainLoop(std::ostream & out, const struct std::vector<flow> flows, c
     
 }
 
+static void writeConfig (po::variables_map & vm, std::ostream & out) {
+    // Also: http://stackoverflow.com/questions/4703134/is-there-a-way-to-print-config-file-for-boost-program-options
+    using boost::property_tree::ptree;
+
+    ptree root;
+
+    for(auto i:vm) {
+        // Do not write the config option in the new config
+        if(i.first == "config")
+            continue;
+
+        if(i.second.value().type() == typeid(int))
+            root.put(i.first, i.second.as<int>());
+        else if(i.second.value().type() == typeid(std::string))
+            root.put(i.first, i.second.as<std::string>());
+        else if(i.second.value().type() == typeid(float))
+            root.put(i.first, i.second.as<float>());
+        else if(i.second.value().type() == typeid(bool))
+            root.put(i.first, i.second.as<bool>());
+        else if(i.second.value().type() == typeid(unsigned long))
+            root.put(i.first, i.second.as<unsigned long>());
+        else if(i.second.value().type() == typeid(unsigned int))
+            root.put(i.first, i.second.as<unsigned int>());
+        else
+            std::cerr << "Unknown options type: " << i.second.value().type().name() << " " << i.first << std::endl;
+    }
+
+    write_ini( out, root );
+    out.flush();
+}
+
 static void readConfigFile(const std::string & config_file, po::variables_map & vm, const po::options_description  & allcfgopts)
 {
     if ( config_file != "") {
@@ -129,6 +162,9 @@ static void readConfigFile(const std::string & config_file, po::variables_map & 
         }
 
         po::notify(vm);
+
+        if (vm["showConfig"].as<bool>())
+            writeConfig(vm, std::cout);
     }
 
 }
@@ -152,7 +188,6 @@ int main (int argc, const char * argv[])
     double scaleFactorTime;
 
     bool doLoop;
-
 
     long cutofftime;
     typedef std::chrono::high_resolution_clock Clock;
@@ -185,6 +220,7 @@ int main (int argc, const char * argv[])
     ("logFile", po::value<std::string>()->default_value("-"), "Log file")
     ("cutOffTime", po::value<long>(&cutofftime)->default_value(0), "Don't play flows newer than this [ms]")
     ("loop", po::value<bool>(&doLoop)->default_value(false), "Loop over the traffic file.")
+    ("showConfig", po::value<bool>()->default_value(true), "Print out config for diagnostic")
     ;
 
     boost::program_options::positional_options_description pd;
@@ -214,6 +250,9 @@ int main (int argc, const char * argv[])
     signal(SIGHUP, [](int signum) { sighuphandler(signum); });
     
 
+    std::ostream & out= getOut(vm["logFile"].as<std::string>());
+    if (vm["showConfig"].as<bool>())
+        writeConfig(vm, out);
 
 
     //read flows from file - only hold the ones we really want to have:
@@ -225,7 +264,8 @@ int main (int argc, const char * argv[])
 
     int numFlows = 0;
 
-    std::ostream & out= getOut(vm["logFile"].as<std::string>());
+
+
 
     if(!infile.good()) {
         out << "Some errors has occured opening " << flowFile << std::endl;
@@ -308,4 +348,9 @@ int main (int argc, const char * argv[])
 	
     return 0;
 }
+
+
+
+
+
 
