@@ -212,7 +212,7 @@ int main (int argc, const char * argv[])
     po::notify(vm);
 
 
-    readConfigFile(config_file, vm, allcfgopts);
+    readConfigFile(config_file, vm, allcmdopts);
 
 
 
