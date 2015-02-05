@@ -202,11 +202,11 @@ int main (int argc, const char * argv[])
     allcfgopts.add(desc);
 
     po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
+    po::store(po::command_line_parser(argc, argv).options(allcmdopts).positional(pd).run(), vm);
     po::notify(vm);
 
 
-    readConfigFile(config_file, vm, allcmdopts);
+    readConfigFile(config_file, vm, allcfgopts);
 
 
 
