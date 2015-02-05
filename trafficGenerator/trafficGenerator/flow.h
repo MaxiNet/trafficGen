@@ -21,7 +21,7 @@ struct flow {
     std::string toIP;
     int number;
     
-    void fromString(std::string line, std::string ipBase, int numServersPerRack, double scaleFactorSize, double scaleFactorTime) {
+    void fromString(std::string line, std::string ipBase, int numServersPerRack, double scaleFactorTime) {
         //style= 1, 4, 40.06287, 11045.23 (from, to, time, bytes)
         
         typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -37,13 +37,6 @@ struct flow {
             if(i == 2) start = (long long)((stod(v) * scaleFactorTime * 1000.0));
             if(i == 3) {
                 double flowBytes = stod(v);
-
-                flowBytes *= scaleFactorSize;
-
-                // WATT?!
-                if(flowBytes < 1)
-                    flowBytes = flowBytes*2;
-                
                 bytes = flowBytes;
             }
 
@@ -55,7 +48,13 @@ struct flow {
         fromIP = getIp(fromId, numServersPerRack, ipBase);
         toIP = getIp(toId, numServersPerRack, ipBase);
         
-    }
+	};
+	
+	
+	ssize_t getSize(const trafficGenConfig &tgConf) const {
+		return bytes * tgConf.scaleFactorSize;
+	};
+	
 };
 
 
