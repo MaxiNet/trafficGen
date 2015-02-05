@@ -59,7 +59,7 @@ void gogogo(int sig) {
 }
 
 
-static void mainLoop(std::ostream & out, const struct std::vector<flow> flows, const trafficGenConfig & tgConf )
+static void mainLoop(std::ostream & out, const std::vector<flow> flows, const trafficGenConfig & tgConf )
 {
     out << "start scheduling flows..."  << std::endl;
 
@@ -144,6 +144,15 @@ static void writeConfig (po::variables_map & vm, std::ostream & out) {
     out.flush();
 }
 
+boost::program_options::positional_options_description getPositionalArguments() {
+	boost::program_options::positional_options_description pd;
+    for(const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize",
+				"scaleFactorTime", "participatory", "participatorySleep"}) {
+        pd.add (arg, 1);
+    }
+	return pd;
+}
+
 static void readConfigFile(const std::string & config_file, po::variables_map & vm, const po::options_description  & allcfgopts)
 {
     if ( config_file != "") {
@@ -163,16 +172,26 @@ static void readConfigFile(const std::string & config_file, po::variables_map & 
             return;
         }
 
-        po::notify(vm);
-
-        if (vm["showConfig"].as<bool>())
-            writeConfig(vm, std::cout);
     }
 
 }
 
 
-static std::function<void(int)> sighuphandler;
+static std::function<void()> sighuphandler;
+
+
+
+void reReadConfig (po::options_description & allcmdopts, std::string  config_file, int argc, const char* argv[])
+{
+    po::variables_map vm;
+    readConfigFile(config_file, vm, allcmdopts);
+
+    po::store(po::command_line_parser(argc, argv).options(allcmdopts).positional(getPositionalArguments()).run(), vm);
+    po::notify(vm);
+
+    if (vm["showConfig"].as<bool>())
+        writeConfig(vm, std::cout);
+}
 
 int main (int argc, const char * argv[])
 {
@@ -192,7 +211,6 @@ int main (int argc, const char * argv[])
     bool doLoop;
 
     unsigned long cutofftime;
-    typedef std::chrono::high_resolution_clock Clock;
 
     trafficGenConfig tgConf;
     std::string config_file;
@@ -224,13 +242,8 @@ int main (int argc, const char * argv[])
     ("loop", po::value<bool>(&doLoop)->default_value(false), "Loop over the traffic file.")
     ("showConfig", po::value<bool>()->default_value(true), "Print out config for diagnostic")
     ;
-
-    boost::program_options::positional_options_description pd;
-    for(const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize",
-		"scaleFactorTime", "participatory", "participatorySleep"}) {
-        pd.add (arg, 1);
-    }
-
+	
+	auto pd = getPositionalArguments();
     po::options_description allcmdopts;
     po::options_description allcfgopts;
 
@@ -246,10 +259,11 @@ int main (int argc, const char * argv[])
 
     readConfigFile(config_file, vm, allcfgopts);
 
+	po::notify(vm);
 
+    sighuphandler = std::bind (reReadConfig, std::ref(allcmdopts), config_file, argc, argv);
 
-    sighuphandler = std::bind (readConfigFile, config_file, std::ref(vm), std::ref(allcfgopts));
-    signal(SIGHUP, [](int signum) { sighuphandler(signum); });
+    signal(SIGHUP, [](int signum) { sighuphandler(); });
     
 
     std::ostream & out= getOut(vm["logFile"].as<std::string>());
