@@ -53,7 +53,7 @@ private:
     boost::asio::ip::tcp::socket socket_;
     std::string message_;
 
-    enum { max_length = 2*1024*1024 };
+    enum { max_length = 64*1024 };
     char data_[max_length];
 };
 
